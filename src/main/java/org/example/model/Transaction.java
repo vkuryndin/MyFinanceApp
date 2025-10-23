@@ -1,4 +1,4 @@
-package org.example;
+package org.example.model;
 
 public class Transaction {
     public enum Type {INCOME, EXPENSE}

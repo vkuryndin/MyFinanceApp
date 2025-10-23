@@ -1,4 +1,7 @@
-package org.example;
+package org.example.repo;
+
+import org.example.model.Transaction;
+import org.example.model.User;
 
 import java.util.*;
 
@@ -59,9 +62,28 @@ public class UsersRepo {
         return true;
 
     }
-    public void removeUser (String login) {
+    public boolean deleteUser (String login) {
         User u = byLogin.remove(normalizeLogin(login));
-        if (u !=null) byLogin.remove(u.login);
+        if (u !=null) {
+            byLogin.remove(u.login);
+            byId.remove(u.id);
+            return true;
+        }
+        return false;
+    }
+    public boolean deleteUser (String login, String pass) {
+        if (login == null || pass == null) {
+            //throw new IllegalArgumentException("Login and password cannot be null");
+            return false;
+        }
+        User u = byLogin.get(normalizeLogin(login));
+        if (u ==null || !u.checkPassword(pass)){
+            //throw new IllegalArgumentException("Invalid login or password");
+            return false;
+        }
+        byLogin.remove(login);
+        byId.remove(u.id);
+        return true;
     }
 
 

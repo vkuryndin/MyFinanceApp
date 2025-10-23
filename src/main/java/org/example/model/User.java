@@ -1,8 +1,10 @@
-package org.example;
+package org.example.model;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+
+import org.mindrot.jbcrypt.BCrypt;
 
 public class User {
     public final long id;
@@ -34,7 +36,8 @@ public class User {
         if (rawPassword == null || rawPassword.isBlank()) {
             throw new IllegalArgumentException("Password cannot be null or blank");
         }
-        this.passwordHash= sha256(rawPassword);
+        //this.passwordHash= sha256(rawPassword); //previous implementation
+        this.passwordHash = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
         System.out.println("Password hash: " + this.passwordHash);
 
     }
@@ -52,7 +55,8 @@ public class User {
         System.out.println("Checking password for user " + this.login);
         System.out.println("Raw password: " + rawPassword);
         System.out.println("Password hash: " + this.passwordHash);
-        return this.passwordHash !=null && this.passwordHash.equals(sha256(rawPassword));
+        //return this.passwordHash !=null && this.passwordHash.equals(sha256(rawPassword)); //previous implementation
+        return this.passwordHash !=null && BCrypt.checkpw(rawPassword, this.passwordHash);
     }
 
 }

@@ -1,7 +1,8 @@
-package org.example;
+package org.example.storage;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.example.repo.UsersRepo;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
