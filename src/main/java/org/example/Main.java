@@ -38,8 +38,8 @@ public class Main {
             int option = readIntSafe();
             switch (option) {
                 case 1:
-                    System.out.println("Login: ");
-                    String login = scanner.nextLine();
+                    //System.out.println("Login: ");
+                    String login = readLoginSafe();
                     org.example.User u = USERS.find(login);
                     if (u == null) {
                         System.out.println("User not found. Creating new user...");
@@ -84,6 +84,8 @@ public class Main {
                 case 4:
                     System.out.println("You have exited");
                     StorageJson.save(DATA_FILE, USERS);
+                    System.out.println("Saving data to file: " + DATA_FILE.toAbsolutePath());
+                    System.out.println("Bye!");
                     scanner.close();
                     return;
                 default:
@@ -101,7 +103,8 @@ public class Main {
         System.out.println("3. View wallet");
         System.out.println("4. Add budget");
         System.out.println("5. View statistics");
-        System.out.println("6. Return to main menu");
+        System.out.println("6. Transfer money to other user");
+        System.out.println("7. Return to main menu");
         System.out.println("> ");
     }
     private static void runSecondMenu() {
@@ -140,8 +143,9 @@ public class Main {
 
                     //transactions
                     var txs = currentUser.wallet.getTransactions();
-                    if (txs.isEmpty()) {System.out.println("No transactions yet");}
-                    else {
+                    if (txs.isEmpty()) {
+                        System.out.println("No transactions yet");
+                    } else {
                         System.out.println("Transactions:");
                         for (Transaction t : txs) {
                             System.out.println("- " + t);
@@ -150,8 +154,9 @@ public class Main {
 
                     //budgets
                     var budgets = currentUser.wallet.getBudgets();
-                    if (budgets.isEmpty()) {System.out.println("No budgets yet");}
-                    else {
+                    if (budgets.isEmpty()) {
+                        System.out.println("No budgets yet");
+                    } else {
                         System.out.println("Budgets:");
                         for (var e : budgets.entrySet()) {
                             String cat = e.getKey();
@@ -164,7 +169,9 @@ public class Main {
 
                     //alerts
                     var alerts = currentUser.wallet.getbudgetAlerts();
-                    for (String a : alerts) {System.out.println("! " +a);}
+                    for (String a : alerts) {
+                        System.out.println("! " + a);
+                    }
                     break;
                 case 4:
                     System.out.println("You are going to add budget");
@@ -192,8 +199,9 @@ public class Main {
                     System.out.println("Balance: " + balance);
 
                     var incMap = currentUser.wallet.incomesByCategory();
-                    if (incMap.isEmpty()) {System.out.println("No incomes yet");}
-                    else {
+                    if (incMap.isEmpty()) {
+                        System.out.println("No incomes yet");
+                    } else {
                         System.out.println("Incomes by category:");
                         for (var e : incMap.entrySet()) {
                             System.out.println("- " + e.getKey() + ": " + e.getValue());
@@ -201,8 +209,9 @@ public class Main {
                         }
                     }
                     var expMap = currentUser.wallet.expensesByCategory();
-                    if (expMap.isEmpty()) {System.out.println("No expenses yet");}
-                    else {
+                    if (expMap.isEmpty()) {
+                        System.out.println("No expenses yet");
+                    } else {
                         System.out.println("Expenses by category:");
                         for (var e : expMap.entrySet()) {
                             System.out.println("- " + e.getKey() + ": " + e.getValue());
@@ -211,6 +220,19 @@ public class Main {
                     System.out.println("==========================");
                     break;
                 case 6:
+                    String toLogin = readStringSafe("Enter login of user to transfer money to: ");
+                    System.out.println("Enter amount to transfer:  ");
+                    double amount = readDoubleSafe();
+                    String note = readStringSafe("Enter note (reason for transfer): ");
+
+                    try {USERS.transfer(currentUser.login, toLogin, amount, note);
+                        System.out.println("Transferred " + amount + "to " +toLogin);
+                        System.out.println("Your new balance: " + currentUser.wallet.getBalance());
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("Transfer failes " + e.getMessage());
+                    }
+                    break;
+                case 7:
                     System.out.println("You are going to return to main menu");
                     //showFirstMenu();
                     return;
@@ -221,6 +243,8 @@ public class Main {
             }
         }
     }
+
+    //TO FIX switch to the Input class.
     private static int readIntSafe() {
         while(!scanner.hasNextInt()) {
             scanner.nextLine();
@@ -252,6 +276,16 @@ public class Main {
                 if (!s.isEmpty()) return s;
             }
             System.out.println("Input cannot be empty. Try again. ");
+        }
+    }
+    private static String readLoginSafe(){
+        while (true) {
+            System.out.println("Please, enter login (3-32, start with letter, letters/digits/._-): ");
+            String s = scanner.nextLine().trim().toLowerCase();// normalazing to lower case
+            if (s.matches("^[a-z][a-z0-9._-]{2,31}$")) {
+                return s;
+            }
+            System.out.println("Login must be between 3 and 32 characters long and contain only letters, digits, dots, dashes and underscores. Try again. ");
         }
     }
 }
