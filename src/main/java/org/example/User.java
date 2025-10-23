@@ -11,6 +11,7 @@ public class User {
     public String surname;
 
     private transient String passwordHash;  //no serialization for password
+    public final Wallet wallet = new Wallet();
 
 
     public User(long id, String login, String name, String surname, String rawPassword) {
