@@ -1,17 +1,21 @@
 package org.example;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class Main {
 
    private static final Scanner scanner = new Scanner(System.in);
-   private static final UsersRepo USERS = new org.example.UsersRepo();
+   private static UsersRepo USERS = new org.example.UsersRepo();
    private static org.example.User currentUser = null;
+   private static final Path DATA_FILE = Paths.get("data", "finance-data.json");
 
     public static void main(String[] args) {
         System.out.println("Welcome to my finance app");
         System.out.println("==========================");
         //showFirstMenu();
+        USERS = StorageJson.loadOrNew(DATA_FILE);
         runFirstMenu();
     }
     private static void showFirstMenu() {
@@ -79,6 +83,7 @@ public class Main {
                     break;
                 case 4:
                     System.out.println("You have exited");
+                    StorageJson.save(DATA_FILE, USERS);
                     scanner.close();
                     return;
                 default:

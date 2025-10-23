@@ -10,7 +10,7 @@ public class User {
     public String name;
     public String surname;
 
-    private transient String passwordHash;  //no serialization for password
+    private String passwordHash;  //no serialization for password
     public final Wallet wallet = new Wallet();
 
 
