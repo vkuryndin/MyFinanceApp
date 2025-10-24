@@ -11,12 +11,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
 public class StorageJson {
-    private StorageJson() {
 
+    //constractor is private to prevent instantiation
+    private StorageJson() {
+        throw new AssertionError("No instances allowed");
     }
+    //using GSON to serialize and deserialize objects to and from JSON format (to save all our data to the file)
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .create();
+
+    //saving and loading users' repository to and from file
     public static void save(Path file, UsersRepo usersRepo) {
         try {
             if (file.getParent() != null) Files.createDirectories(file.getParent());
@@ -27,6 +32,7 @@ public class StorageJson {
             System.err.println("Error saving users repository to file " + file.toString() + ": " + e.getMessage());
         }
     }
+    //loading users' repository from file or creating new one if file does not exist
     public static UsersRepo loadOrNew (Path file) {
         if (!Files.exists(file)) return new UsersRepo();
         try (BufferedReader r = Files.newBufferedReader(file, StandardCharsets.UTF_8)){
@@ -36,9 +42,6 @@ public class StorageJson {
         } catch (Exception e) {
             System.err.println("Error loading users repository from file " + file.toString() + ": " + e.getMessage() + "starting afresh...");
             return new UsersRepo();
-
         }
-
     }
-
 }
