@@ -82,5 +82,15 @@ public class Input {
             }
         }
     }
+    public static String readLoginSafe(Scanner scanner) {
+        while (true) {
+            System.out.println("Please, enter login (3-32, start with letter, letters/digits/._-): ");
+            String s = scanner.nextLine().trim().toLowerCase();// normalazing to lower case
+            if (s.matches("^[a-z][a-z0-9._-]{2,31}$")) {
+                return s;
+            }
+            System.out.println("Login must be between 3 and 32 characters long and contain only letters, digits, dots, dashes and underscores. Try again. ");
+        }
+    }
 
 }

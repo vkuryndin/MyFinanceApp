@@ -11,7 +11,8 @@ public class User {
     public final String login;
     public String name;
     public String surname;
-    private boolean isAdmin;  //
+    private boolean isSuperAdmin;  //Super Admin can be only one. it will be the first user to enter to the program.
+    private boolean isAdmin;  // ordinary admin.
 
     private String passwordHash;
     public final Wallet wallet = new Wallet();
@@ -23,8 +24,10 @@ public class User {
         this.name = name;
         this.surname = surname;
         setPassword(rawPassword);
-        if (id ==1 && !isDataExists) this.isAdmin = true;  // we check here , whether this is the first user and we have no previous data
-        //this first becomes admin
+        if (id ==1) this.isSuperAdmin = true;
+       // I decided to create superadmin here and other admins.
+        // if (id ==1 && !isDataExists) this.isAdmin = true;  // we check here , whether this is the first user and we have no previous data
+        //
     }
     @Override
     public String toString() {
@@ -67,4 +70,21 @@ public class User {
         isAdmin = value;
     }
     public boolean getAdmin () {return isAdmin;}
+
+    public boolean getSuperAdmin () {return isSuperAdmin;}
+
+    public String getAdminStatus () {
+        String s;
+        if (isAdmin) {
+            s = "Ordinary Administrator";
+        }
+        else if (isSuperAdmin) {
+            s= "Super Administrator";
+        }
+        else {
+            s = "None";
+        }
+        return "Administrator status: " + s;
+    }
+
 }
