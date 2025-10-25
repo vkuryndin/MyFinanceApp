@@ -2,6 +2,8 @@ package org.example.app;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import org.example.storage.StorageJson;
@@ -18,11 +20,18 @@ public class Main {
    private static final Path DATA_FILE = Paths.get("data", "finance-data.json");
 
     public static void main(String[] args) {
-        System.out.println("Welcome to my finance app");
-        System.out.println("==========================");
         //showFirstMenu();
         USERS = StorageJson.loadOrNew(DATA_FILE);
-        runFirstMenu();
+
+        //changing the welcome string whether this is the previously saved data exists
+        if (USERS.getIsPreviousDataExists()) {
+            System.out.println("Welcome back to my finance app");
+        }
+        else {
+            System.out.println("Welcome to my finance app");
+        }
+        System.out.println("==========================");
+        runFirstMenu(); 
     }
     private static void showFirstMenu() {
         if (currentUser !=null) {
@@ -34,7 +43,8 @@ public class Main {
         System.out.println("1. Log in");
         System.out.println("2. Log out");
         System.out.println("3. View documentation");
-        System.out.println("4. Exit");
+        System.out.println("4. Log in as administrator");
+        System.out.println("5. Exit");
         System.out.println("> ");
     }
     private static void runFirstMenu() {
@@ -52,7 +62,7 @@ public class Main {
                         String name = Input.readStringSafe(scanner, "Please enter your name: ", true);
                         //System.out.println("Name: ");  //TO FIX revert to readStringSafe method
                         //String name = scanner.nextLine();
-                        String surname =Input.readStringSafe(scanner, "Please enter your surname: ", true);
+                        String surname = Input.readStringSafe(scanner, "Please enter your surname: ", true);
                         //System.out.println("Surname: "); //TO FIX revert to readStringSafe method
                         //String surname = scanner.nextLine();
                         String pass = Input.readStringSafe(scanner, "Please enter your password: ");
@@ -63,7 +73,7 @@ public class Main {
                     } else {
                         //System.out.println("Password: ");
                         //String pass = scanner.nextLine();
-                        String pass = Input.readStringSafe(scanner,"Please enter your password: ");
+                        String pass = Input.readStringSafe(scanner, "Please enter your password: ");
                         if (USERS.authenticate(login, pass) == null) {
                             System.out.println("Wrong password");
                             System.out.println("> ");
@@ -81,7 +91,7 @@ public class Main {
                     if (currentUser == null) {
                         System.out.println("You are not logged in");
                         System.out.println("> ");
-                    }else {
+                    } else {
                         System.out.println("You have logged out");
                         currentUser = null;
                         System.out.println("> ");
@@ -89,9 +99,21 @@ public class Main {
                     break;
                 case 3:
                     System.out.println("You have viewed documentation");
+                    USERS.listAllUsers();
                     System.out.println("> ");
                     break;
                 case 4:
+                    System.out.println("Your are going to enter administrator menu");
+                    //TO FIX implement admin authorization
+                    if (currentUser != null && currentUser.getAdmin()) {
+                        runAdminMenu();
+                    }
+                    else {
+                        System.out.println("You are not administrator");
+                        System.out.println("Log in as administrator and try again");
+                    }
+                    break;
+                case 5:
                     System.out.println("You have exited");
                     StorageJson.save(DATA_FILE, USERS);
                     System.out.println("Saving data to file: " + DATA_FILE.toAbsolutePath());
@@ -99,7 +121,7 @@ public class Main {
                     scanner.close();
                     return;
                 default:
-                    System.out.println("Invalid option, Choose  1-4");
+                    System.out.println("Invalid option, Choose  1-5");
                     System.out.println("> ");
                     break;
             }
@@ -280,7 +302,89 @@ public class Main {
                     break;
             }
         }
+
     }
+    private static void showAdminMenu() {
+        System.out.println("==========================");
+        System.out.println("You are now in the Administrator menu. Please select an option:");
+        System.out.println("1. View all users");
+        System.out.println("2. Delete all users");
+        System.out.println("3. Add administrator");
+        System.out.println("4. Remove administrator");
+        System.out.println("5. Remove saved data");
+        System.out.println("6. Return to main menu");
+        System.out.println("> ");
+    }
+    private static void runAdminMenu() {
+        while (true) {
+            showAdminMenu();
+            int option = Input.readIntSafe(scanner);
+            switch (option) {
+                case 1:
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    System.out.println("You are now going to change administrator account...");
+                    List <User> allUsers = USERS.listAll();
+                    //List <User> adminUsers = List.of();
+                    //List <User> otherUsers = List.of();
+                    for (User u : allUsers) {
+                        if (u.getAdmin()) {
+                            //adminUsers.add(u);
+                            System.out.println("The current administrator is: " + u.name + " " + u.surname);
+                        }
+                    }
+                    System.out.println("All other users are: ");
+                    for (User u : allUsers) {
+                        if (!(u.getAdmin())) {
+                            System.out.println(u);
+                        }
+                    }
+                    String sure = Input.readStringSafe(scanner, "Type YES to confirm changing administrator: ");
+                    if (!"YES".equalsIgnoreCase(sure)) {
+                        System.out.println("Wrong input, try again.");
+                        break;
+                    }
+                    String pass = Input.readStringSafe(scanner, "Enter your password to confirm changing administrator: ");
+                    String newAdminLogin = Input.readStringSafe(scanner, "Enter new administrator login: ");
+
+
+                    boolean result = USERS.changeAdmin(currentUser.login, pass, newAdminLogin);
+                    if (result) {
+                        System.out.println("Admin changed successfully");
+                    } else {
+                        System.out.println("Admin change failed");
+                    }
+                    break;
+/*
+                    for (int i=0; i<USERS.listAll().size(); i++) {
+                        User u = USERS.listAll().get(i);
+                        if (u.isAdmin) {
+                            System.out.println(u);
+                            System.out.println("The current administrator is: " +u.name + " " + u.surname);
+                        }
+                    }*/
+                    //showing current admin
+                    /*List[] userList = new List[]{USERS.listAll()};
+                    for (int i = 0; i < userList.length; i++) {
+                        System.out.println("Currently inspectedm user is: " + userList[i]);
+                        try {
+                            User u = (User) userList[i];
+                            if (u.isAdmin) System.out.println("This is the admin user: "+ u.toString());
+                        } catch (ClassCastException e) {System.out.println(e.getMessage());}
+                    }*/
+                case 4:
+                    System.out.println("You are going to return to main menu");
+                    return;
+                default:
+                    System.out.println("Invalid option, Choose  1-4");
+                    System.out.println("> ");
+                    break;
+            }
+        }
+    }
+
 
     //TO FIX switch to the Input class.
     /*private static int readIntSafe() {

@@ -11,17 +11,20 @@ public class User {
     public final String login;
     public String name;
     public String surname;
+    private boolean isAdmin;  //
 
     private String passwordHash;
     public final Wallet wallet = new Wallet();
 
 
-    public User(long id, String login, String name, String surname, String rawPassword) {
+    public User(long id, String login, String name, String surname, String rawPassword, boolean isDataExists)  {
         this.id = id;
         this.login = login;
         this.name = name;
         this.surname = surname;
         setPassword(rawPassword);
+        if (id ==1 && !isDataExists) this.isAdmin = true;  // we check here , whether this is the first user and we have no previous data
+        //this first becomes admin
     }
     @Override
     public String toString() {
@@ -30,7 +33,8 @@ public class User {
                 ", login='" + login + '\'' +
                 ", name='" + name + '\'' +
                 ", surname='" + surname + '\'' +
-                '}';
+                ", is administrator='" + isAdmin + '\'' +
+        '}';
     }
     public void setPassword(String rawPassword) {
         if (rawPassword == null || rawPassword.isBlank()) {
@@ -59,4 +63,8 @@ public class User {
         return this.passwordHash !=null && BCrypt.checkpw(rawPassword, this.passwordHash);
     }
 
+    public void setAdmin(boolean value) {
+        isAdmin = value;
+    }
+    public boolean getAdmin () {return isAdmin;}
 }

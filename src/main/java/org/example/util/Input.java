@@ -10,6 +10,7 @@ public class Input {
     public static String readStringSafe(Scanner scanner, String prompt) {
         while (true) {
             System.out.println(prompt);
+            System.out.println("> ");
             String s = scanner.nextLine();
             if (s != null) {
                 s = s.trim();
@@ -21,6 +22,7 @@ public class Input {
     public static String readStringSafe(Scanner scanner, String prompt, boolean disallowDigits) {
         while (true) {
             System.out.println(prompt);
+            System.out.println("> ");
             String s = scanner.nextLine();
             if (s == null) s = "";
             s = s.trim();
@@ -44,6 +46,7 @@ public class Input {
     public static double readDoubleSafe(Scanner scanner, String prompt) {
         while(true) {
             System.out.println(prompt);
+            System.out.println("> ");
             String s = scanner.nextLine().trim();
             try {
                 double v = Double.parseDouble(s.replace(',', '.'));
@@ -60,6 +63,7 @@ public class Input {
     public static int readIntSafe(Scanner scanner, String prompt) {
         while(true) {
             System.out.println(prompt);
+            System.out.println("> ");
             String s = scanner.nextLine().trim();
             try {
                 return Integer.parseInt(s);

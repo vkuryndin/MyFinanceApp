@@ -9,13 +9,16 @@ public class UsersRepo {
     private final Map<String, User> byLogin = new HashMap<>();
     private final Map<Long, User> byId = new HashMap<>();
     private long nextId = 1L;
+    //private static int firstUserCounter = 1;
+
+    private boolean isPreviousDataExists = false;  //special flag to decide whether we load UserRepo from file or not
 
     public User register (String login, String name, String surname, String rawPassword) {
         login = normalizeLogin(login);
         if (!isValidLogin(login)) {throw new IllegalArgumentException("Invalid login format");}
         User u = byLogin.get(login);
         if (u ==null) {
-            u = new User(nextId++, login, name, surname, rawPassword);
+            u = new User(nextId++, login, name, surname, rawPassword, isPreviousDataExists);
             byLogin.put(login, u);
             byId.put(u.id, u);
         }
@@ -86,6 +89,43 @@ public class UsersRepo {
         return true;
     }
 
+    public boolean changeAdmin (String login, String pass, String newAdminLogin) {
+        if (login == null || pass == null) {
+            System.out.println("login or pass cannot be null");
+            return false;
+        }
+        User u = byLogin.get(normalizeLogin(login));
+        if (u ==null || !u.checkPassword(pass)) {
+            System.out.println("Wrong password: " + pass +", or user not found");
+            return false;
+        }
+        User newAdmin = byLogin.get(normalizeLogin(newAdminLogin));
+        if (newAdmin==null) {
+            System.out.println("Wrong login: " + newAdminLogin);
+            return false;
+        }
+        if (newAdmin.getAdmin())
+        {
+            System.out.println("This user is already an admin " + newAdminLogin);
+            return false;
+        }
+        //TO FIX: decide whether my app will have only one admin!
+        //right now we will allow to have multiply admins
+        newAdmin.setAdmin(true);
+        //u.setAdmin(false);
+        return true;
+    }
+    public void listAllUsers () {
+        System.out.println("List of all users: ");
+        for (User u : byLogin.values()) {
+            System.out.println(u);
+        }
+    }
 
+    // setters and getters for previous data exists
+    public void setIsPreviousDataExists(boolean value) {
+        this.isPreviousDataExists = value;
+    }
+    public boolean getIsPreviousDataExists() {return isPreviousDataExists;}
 
 }

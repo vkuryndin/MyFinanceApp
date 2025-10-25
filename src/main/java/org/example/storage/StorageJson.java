@@ -12,10 +12,11 @@ import java.nio.file.*;
 
 public class StorageJson {
 
-    //constractor is private to prevent instantiation
+    //constructor is private to prevent instantiation
     private StorageJson() {
         throw new AssertionError("No instances allowed");
     }
+
     //using GSON to serialize and deserialize objects to and from JSON format (to save all our data to the file)
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -37,7 +38,13 @@ public class StorageJson {
         if (!Files.exists(file)) return new UsersRepo();
         try (BufferedReader r = Files.newBufferedReader(file, StandardCharsets.UTF_8)){
             UsersRepo usersRepo = GSON.fromJson(r, UsersRepo.class);
-            return (usersRepo !=null)? usersRepo: new UsersRepo();
+            //return (usersRepo !=null)? usersRepo: new UsersRepo(); //previous implementations
+            if (usersRepo != null) {
+                usersRepo.setIsPreviousDataExists(true);
+                return usersRepo;
+            }else {
+                return new UsersRepo();
+            }
 
         } catch (Exception e) {
             System.err.println("Error loading users repository from file " + file.toString() + ": " + e.getMessage() + "starting afresh...");
