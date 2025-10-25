@@ -80,7 +80,6 @@ public class Main {
                     break;
                 case 3:
                     System.out.println("You have viewed documentation");
-                    USERS.listAllUsers();  //TO FIX  move to the admin section
                     System.out.println("> ");
                     break;
                 case 4:
@@ -120,8 +119,6 @@ public class Main {
             switch (option) {
                 case 1:
                     System.out.println("You are going to add income");
-                    //System.out.println("Enter income amount:");
-                    //double incomeAmount = readDoubleSafe();
                     double incomeAmount = Input.readDoubleSafe(scanner, "Enter income amount");
                     String incomeTitle = Input.readStringSafe(scanner, "Enter income title");
                     currentUser.wallet.addTransaction(incomeAmount, incomeTitle, Transaction.Type.INCOME);
@@ -129,8 +126,6 @@ public class Main {
                     break;
                 case 2:
                     System.out.println("You are going to add expense");
-                    //System.out.println("Enter expense amount:");
-                    //double expenseAmount = readDoubleSafe();
                     double expenseAmount = Input.readDoubleSafe(scanner, "Enter expense amount");
                     String expenseTitle = Input.readStringSafe(scanner, "Enter expense title:");
                     currentUser.wallet.addTransaction(expenseAmount, expenseTitle, Transaction.Type.EXPENSE);
@@ -276,25 +271,27 @@ public class Main {
             int option = Input.readIntSafe(scanner);
             switch (option) {
                 case 1:
-                    break;
+                    System.out.println("You are going to view all users");
+                    USERS.listAllUsers();
                 case 2:
                     break;
                 case 3:
                     System.out.println("You are now going to add ordinary administrator account...");
                     List<User> allUsers = USERS.listAll();
-                    //List <User> adminUsers = List.of();
-                    //List <User> otherUsers = List.of();
+                    List <User> adminUsers = new ArrayList<>();
+                    List <User> otherUsers =  new  ArrayList<>();
                     //TO FIX find ou how to create list of objects and introduce two types of objects - admins and not admins
                     System.out.println("The current administrators are: ");
                     for (User u : allUsers) {
                         if (u.getAdmin()) {
-                            //adminUsers.add(u);
+                            adminUsers.add(u);
                             System.out.println(u.name + " " + u.surname);
                         }
                     }
                     System.out.println("All other users are: ");
                     for (User u : allUsers) {
                         if (!(u.getAdmin())) {
+                            otherUsers.add(u);
                             System.out.println(u.name + " " + u.surname);
                         }
                     }
