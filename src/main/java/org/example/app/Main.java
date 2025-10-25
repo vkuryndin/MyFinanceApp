@@ -10,6 +10,7 @@ import org.example.storage.StorageJson;
 import org.example.model.Transaction;
 import org.example.repo.UsersRepo;
 import org.example.model.User;
+import org.example.util.ConsoleMenu;
 import org.example.util.Input;
 
 public class Main {
@@ -33,7 +34,7 @@ public class Main {
         System.out.println("==========================");
         runFirstMenu(); 
     }
-    private static void showFirstMenu() {
+    /*private static void showFirstMenu() {
         if (currentUser !=null) {
             System.out.println("Logged in as: " + currentUser.login);
         }else {
@@ -47,10 +48,14 @@ public class Main {
         System.out.println("5. Exit");
         System.out.println("> ");
     }
+    */
+
+
     private static void runFirstMenu() {
 
         while (true) {
-            showFirstMenu();
+            //showFirstMenu();
+            ConsoleMenu.showFirstMenu(currentUser);
             int option = Input.readIntSafe(scanner);
             switch (option) {
                 case 1:
@@ -325,20 +330,22 @@ public class Main {
                 case 2:
                     break;
                 case 3:
-                    System.out.println("You are now going to change administrator account...");
-                    List <User> allUsers = USERS.listAll();
+                    System.out.println("You are now going to add administrator account...");
+                    List<User> allUsers = USERS.listAll();
                     //List <User> adminUsers = List.of();
                     //List <User> otherUsers = List.of();
+                    //TO FIX find ou how to create list of objects and inroduce two types of objects - admins and not admins
+                    System.out.println("The current administrators are: ");
                     for (User u : allUsers) {
                         if (u.getAdmin()) {
                             //adminUsers.add(u);
-                            System.out.println("The current administrator is: " + u.name + " " + u.surname);
+                            System.out.println(u.name + " " + u.surname);
                         }
                     }
                     System.out.println("All other users are: ");
                     for (User u : allUsers) {
                         if (!(u.getAdmin())) {
-                            System.out.println(u);
+                            System.out.println(u.name + " " + u.surname);
                         }
                     }
                     String sure = Input.readStringSafe(scanner, "Type YES to confirm changing administrator: ");
@@ -357,24 +364,13 @@ public class Main {
                         System.out.println("Admin change failed");
                     }
                     break;
-/*
-                    for (int i=0; i<USERS.listAll().size(); i++) {
-                        User u = USERS.listAll().get(i);
-                        if (u.isAdmin) {
-                            System.out.println(u);
-                            System.out.println("The current administrator is: " +u.name + " " + u.surname);
-                        }
-                    }*/
-                    //showing current admin
-                    /*List[] userList = new List[]{USERS.listAll()};
-                    for (int i = 0; i < userList.length; i++) {
-                        System.out.println("Currently inspectedm user is: " + userList[i]);
-                        try {
-                            User u = (User) userList[i];
-                            if (u.isAdmin) System.out.println("This is the admin user: "+ u.toString());
-                        } catch (ClassCastException e) {System.out.println(e.getMessage());}
-                    }*/
                 case 4:
+                    System.out.println("You are now going to remove administrator account...");
+                    break;
+                case 5:
+                    System.out.println("You are now going to remove all saved data...");
+                    break;
+                case 6:
                     System.out.println("You are going to return to main menu");
                     return;
                 default:
