@@ -89,7 +89,7 @@ public class UsersRepo {
         return true;
     }
 
-    public boolean changeAdmin (String login, String pass, String newAdminLogin) {
+    public boolean addAdmin (String login, String pass, String newAdminLogin) {
         if (login == null || pass == null) {
             System.out.println("login or pass cannot be null");
             return false;
@@ -104,21 +104,49 @@ public class UsersRepo {
             System.out.println("Wrong login: " + newAdminLogin);
             return false;
         }
-        if (newAdmin.getAdmin())
+        if (newAdmin.hasRole(User.Role.ADMIN) || newAdmin.hasRole(User.Role.SUPER_ADMIN))
         {
-            System.out.println("This user is already an admin " + newAdminLogin);
+            System.out.println("This user [" +newAdminLogin + "] is already an admin or super admin ");
             return false;
         }
-        //TO FIX: decide whether my app will have only one admin!
-        //right now we will allow to have multiply admins
-        newAdmin.setAdmin(true);
-        //u.setAdmin(false);
+        newAdmin.addRole(User.Role.ADMIN);
+        return true;
+    }
+    public boolean removeAdmin(String login) {
+        User u = byLogin.get(normalizeLogin(login));
+        if (u==null) {
+            System.out.println("Wrong login: " +login);
+            return false;
+        }
+        if (u.hasRole(User.Role.ADMIN)) {
+            System.out.println("This user [" +login + "] is already an admin");
+            return false;
+        }
+        u.removeRole(User.Role.ADMIN);
         return true;
     }
     public void listAllUsers () {
         System.out.println("List of all users: ");
         for (User u : byLogin.values()) {
             System.out.println(u);
+        }
+    }
+    public void deleteAllUsers () {
+        //deleting all users except super admin]
+        //TO FIX this code is not working!
+        try {
+            for (User u : byLogin.values()) {
+                if (!u.hasRole(User.Role.SUPER_ADMIN)) {
+                    byLogin.remove(u.login,u);
+                    byId.remove(u.id);
+                    System.out.println("Removed user [" + u.login + "] from user list");
+                }
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+            e.printStackTrace();
+
         }
     }
 

@@ -17,6 +17,10 @@ public class User {
     private String passwordHash;
     public final Wallet wallet = new Wallet();
 
+    //exploring user roles using ENUMS
+    public enum Role {USER, ADMIN, SUPER_ADMIN}
+
+    private java.util.EnumSet<Role> roles = java.util.EnumSet.of(Role.USER);
 
     public User(long id, String login, String name, String surname, String rawPassword, boolean isDataExists)  {
         this.id = id;
@@ -24,7 +28,10 @@ public class User {
         this.name = name;
         this.surname = surname;
         setPassword(rawPassword);
-        if (id ==1) this.isSuperAdmin = true;
+        if (id ==1) this.isSuperAdmin = true; //this is the implementation with boolean flag
+        if (id==1) {
+            roles.add(Role.SUPER_ADMIN); //this implementation with roles
+        }
        // I decided to create superadmin here and other admins.
         // if (id ==1 && !isDataExists) this.isAdmin = true;  // we check here , whether this is the first user and we have no previous data
         //
@@ -36,7 +43,8 @@ public class User {
                 ", login='" + login + '\'' +
                 ", name='" + name + '\'' +
                 ", surname='" + surname + '\'' +
-                ", is administrator='" + isAdmin + '\'' +
+                ", roles='" +roles.toString() +
+                //", is administrator='" + isAdmin + '\'' +
         '}';
     }
     public void setPassword(String rawPassword) {
@@ -85,6 +93,20 @@ public class User {
             s = "None";
         }
         return "Administrator status: " + s;
+    }
+
+    //working with roles
+    public boolean hasRole (Role r){
+        return roles.contains(r);
+    }
+    public void addRole (Role r){
+        roles.add(r);
+    };
+    public void removeRole (Role r){
+        roles.remove(r);
+    }
+    public java.util.EnumSet<Role> getRoles() {
+        return roles;
     }
 
 }

@@ -33,7 +33,6 @@ public class Wallet {
             }
         }
         return sum;
-
     }
 
     //budgets

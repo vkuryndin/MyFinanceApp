@@ -1,5 +1,8 @@
 package org.example.app;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -21,6 +24,9 @@ public class Main {
    private static User currentUser = null;
    private static final Path DATA_FILE = Paths.get("data", "finance-data.json");
 
+   private static boolean isExit= false; // this will allow us to exit from the 2 tier (Actions) menu
+    private static boolean isloggedOut = false;  //this will allow us to enter log in menu after user deletion
+
     public static void main(String[] args) {
         //showFirstMenu();
         USERS = StorageJson.loadOrNew(DATA_FILE);
@@ -33,88 +39,110 @@ public class Main {
             System.out.println("Welcome to my finance app");
         }
         System.out.println("==========================");
-        runFirstMenu(); 
+        //runFirstMenu();
+        runLoginMenu();
     }
-
-    private static void runFirstMenu() {
-
+    private static void runLoginMenu() {
         while (true) {
-            //showFirstMenu();
-            Misc.checkLogonStatusSimnple(currentUser);
-            ConsoleMenu.showFirstMenu();
-            int option = Input.readIntSafe(scanner);
-            switch (option) {
-                case 1:
-                    //System.out.println("Login: ");
-                    String login = Input.readLoginSafe(scanner);
-                    User u = USERS.find(login);
-                    if (u == null) {
-                        System.out.println("User not found. Creating new user...");
-                        String name = Input.readStringSafe(scanner, "Please enter your name: ", true);
-                        String surname = Input.readStringSafe(scanner, "Please enter your surname: ", true);
-                        String pass = Input.readStringSafe(scanner, "Please enter your password: ");
-                        u = USERS.register(login, name, surname, pass);
-                        System.out.println("User created successfully: " + u.toString());
-                    } else {
-                        //TO FIX implement password policy
-                        String pass = Input.readStringSafe(scanner, "Please enter your password: ");
-                        if (USERS.authenticate(login, pass) == null) {
-                            System.out.println("Wrong password");
-                            System.out.println("> ");
-                            break;
+            if (!isExit) {
+                ConsoleMenu.showLogInMenu();
+                int option = Input.readIntSafe(scanner);
+                switch (option) {
+                    case 1:
+                        System.out.println("Log in");
+                        String login = Input.readLoginSafe(scanner);
+                        User u = USERS.find(login);
+                        if (u == null) {
+                            System.out.println("User not found. Creating new user...");
+                            String name = Input.readStringSafe(scanner, "Please enter your name: ", true);
+                            String surname = Input.readStringSafe(scanner, "Please enter your surname: ", true);
+                            String pass = Input.readStringSafe(scanner, "Please enter your password: ");
+                            u = USERS.register(login, name, surname, pass);
+                            System.out.println("User created successfully: " + u.toString());
+                        } else {
+                            //TO FIX implement password policy
+                            String pass = Input.readStringSafe(scanner, "Please enter your password: ");
+                            if (USERS.authenticate(login, pass) == null) {
+                                System.out.println("Wrong password");
+                                System.out.println("> ");
+                                break;
+                            }
+                            System.out.println("Logged in successfully: " + u.toString());
                         }
-                        System.out.println("Logged in successfully: " + u.toString());
-                    }
-                    currentUser = u;
-                    runSecondMenu();
-                    break;
-                case 2:
-                    if (currentUser == null) {
-                        System.out.println("You are not logged in");
-                        System.out.println("> ");
-                    } else {
-                        System.out.println("You have logged out");
-                        currentUser = null;
-                        System.out.println("> ");
-                    }
-                    break;
-                case 3:
-                    System.out.println("You have viewed documentation");
-                    System.out.println("> ");
-                    break;
-                case 4:
-                    System.out.println("Your are going to enter either super of ordinary administrator menu depending on the level of your access rights");
-                    //check what kind of admin we have to show different menus
-                    if (currentUser != null && currentUser.getSuperAdmin()) {
-                        runSuperAdminMenu(); //running super admin menu
-                    }
-                    else if (currentUser!=null && currentUser.getAdmin()) {
-                        runOrdinaryAdminMenu(); //running ordinary admin menu
-                    }
-                    else {
-                        System.out.println("You are not administrator");
-                        System.out.println("Log in as either super or ordinary administrator and try again");
-                    }
-                    break;
-                case 5:
-                    System.out.println("You have exited");
-                    StorageJson.save(DATA_FILE, USERS);
-                    System.out.println("Saving data to file: " + DATA_FILE.toAbsolutePath());
-                    System.out.println("Bye!");
-                    scanner.close();
-                    return;
-                default:
-                    System.out.println("Invalid option, Choose  1-5");
-                    System.out.println("> ");
-                    break;
-            }
+                        currentUser = u;
+                        runActionsMenu();
+                        break;
+                    case 2:
+                        System.out.println("View docs");
+                        //TO FIX::write the documentation of the program
+                        break;
+                    case 3:
+                        System.out.println("You have exited");
+                        StorageJson.save(DATA_FILE, USERS);
+                        System.out.println("Saving data to file: " + DATA_FILE.toAbsolutePath());
+                        System.out.println("Bye!");
+                        scanner.close();
+                        return;
+                    default:
+                        System.out.println("Invalid option, Choose  1-3");
+                        break;
+                }
+            } else return;
         }
     }
-
-    private static void runSecondMenu() {
+    private static void runActionsMenu() {
+           while (true) {
+               if (!isloggedOut) {
+               ConsoleMenu.showActionsMenu();
+               int option = Input.readIntSafe(scanner);
+               switch (option) {
+                   case 1:
+                       System.out.println("Main actions");
+                       runMainActionsMenu();
+                       break;
+                   case 2:
+                       //System.out.println("Admin actions");
+                       System.out.println("Your are going to enter either super of ordinary administrator menu depending on the level of your access rights");
+                       //check what kind of admin we have to show different menus
+                       if (currentUser != null && currentUser.hasRole(User.Role.SUPER_ADMIN)) {
+                           runSuperAdminMenu(); //running super admin menu
+                       } else if (currentUser != null && currentUser.hasRole(User.Role.ADMIN)) {
+                           runOrdinaryAdminMenu(); //running ordinary admin menu
+                       } else {
+                           System.out.println("You are not administrator");
+                           System.out.println("Log in as either super or ordinary administrator and try again");
+                       }
+                       break;
+                   case 3:
+                       System.out.println("Log out");
+                       if (currentUser == null) {
+                           System.out.println("You are not logged in");
+                           System.out.println("> ");
+                       } else {
+                           System.out.println("You have logged out");
+                           currentUser = null;
+                           System.out.println("> ");
+                       }
+                       return;
+                   case 4:
+                       System.out.println("You have exited");
+                       StorageJson.save(DATA_FILE, USERS);
+                       System.out.println("Saving data to file: " + DATA_FILE.toAbsolutePath());
+                       System.out.println("Bye!");
+                       scanner.close();
+                       isExit = true;
+                       return;
+                   default:
+                       System.out.println("Invalid option, Choose  1-4");
+                       break;
+               }
+           }else return;
+       }
+    }
+    private static void runMainActionsMenu() {
         while (true) {
             if (!Misc.checkLogonStatus(currentUser)) break;
-            ConsoleMenu.showSecondMenu();
+            ConsoleMenu.showMainActionsMenu();
             int option = Input.readIntSafe(scanner);
             switch (option) {
                 case 1:
@@ -153,7 +181,6 @@ public class Main {
                             System.out.println("- " + t);
                         }
                     }
-
                     //viewing budgets
                     var budgets = currentUser.wallet.getBudgets();
                     if (budgets.isEmpty()) {
@@ -175,11 +202,9 @@ public class Main {
                     }
                     break;
                 case 4:
-                    System.out.println("You are going to add budget");
+                    System.out.println("You are going to add budget for your categories");
                     String cat = Input.readStringSafe(scanner, "Enter category name: ");
                     double limit = Input.readDoubleSafe(scanner, "Enter budget limit: ");
-                    //System.out.println("Enter budget limit: ");
-                    //double limit = readDoubleSafe();
                     currentUser.wallet.setBudget(cat, limit);
                     System.out.println("Budget added successfully: " + limit + " (" + cat + ")");
 
@@ -190,41 +215,10 @@ public class Main {
                     break;
                 case 5:
                     System.out.println("You are going to view statistics");
-                    double totalIncome = currentUser.wallet.sumIncome();
-                    double totalExpense = currentUser.wallet.sumExpense();
-                    double balance = currentUser.wallet.getBalance();
-
-                    System.out.println("==========================");
-                    System.out.println("Wallet statistics");
-                    System.out.println("Total income: " + totalIncome);
-                    System.out.println("Total expense: " + totalExpense);
-                    System.out.println("Balance: " + balance);
-
-                    var incMap = currentUser.wallet.incomesByCategory();
-                    if (incMap.isEmpty()) {
-                        System.out.println("No incomes yet");
-                    } else {
-                        System.out.println("Incomes by category:");
-                        for (var e : incMap.entrySet()) {
-                            System.out.println("- " + e.getKey() + ": " + e.getValue());
-
-                        }
-                    }
-                    var expMap = currentUser.wallet.expensesByCategory();
-                    if (expMap.isEmpty()) {
-                        System.out.println("No expenses yet");
-                    } else {
-                        System.out.println("Expenses by category:");
-                        for (var e : expMap.entrySet()) {
-                            System.out.println("- " + e.getKey() + ": " + e.getValue());
-                        }
-                    }
-                    System.out.println("==========================");
+                    Misc.displayStatitics(currentUser);
                     break;
                 case 6:
                     String toLogin = Input.readStringSafe(scanner, "Enter login of user to transfer money to: ");
-                    //System.out.println("Enter amount to transfer:  ");
-                    //double amount = readDoubleSafe();
                     double amount = Input.readDoubleSafe(scanner, "Enter amount to transfer: ");
                     String note = Input.readStringSafe(scanner, "Enter note (reason for transfer): ");
 
@@ -238,23 +232,30 @@ public class Main {
                     break;
                 case 7:
                     System.out.println("You are going to delete your user account");
+                    //we ae not allowing super admin to delete his/hers account
+                    if (currentUser.hasRole(User.Role.SUPER_ADMIN)) {
+                        System.out.println("You are a super admin. You cannot delete this account");
+                        break;
+                    }
                     String sure = Input.readStringSafe(scanner, "Type YES to confirm account deletion: ");
                     if (!"YES".equalsIgnoreCase(sure)) {
                         System.out.println("Wrong input, try again.");
                         break;
                     }
-                    String pass = Input.readStringSafe(scanner, "Enter your password to confirm deletion: ");
-                    boolean result = USERS.deleteUser(currentUser.login, pass);
-                    if (result) {
-                        System.out.println("Account deleted successfully");
-                        currentUser = null;
-                    } else {
-                        System.out.println("Account deletion failed");
+                    else {
+                        String pass = Input.readStringSafe(scanner, "Enter your password to confirm deletion: ");
+                        boolean result = USERS.deleteUser(currentUser.login, pass);
+                        if (result) {
+                            System.out.println("Account deleted successfully");
+                            currentUser = null;
+                        } else {
+                            System.out.println("Account deletion failed");
+                        }
                     }
+                    isloggedOut = true;
                     break;
                 case 8:
                     System.out.println("You are going to return to main menu");
-                    //showFirstMenu();
                     return;
                 default:
                     System.out.println("Invalid option, Choose  1-8");
@@ -262,36 +263,56 @@ public class Main {
                     break;
             }
         }
-
     }
 
     private static void runSuperAdminMenu() {
         while (true) {
             ConsoleMenu.showSuperAdminMenu();
             int option = Input.readIntSafe(scanner);
+            List<User> allUsers = USERS.listAll();
             switch (option) {
                 case 1:
                     System.out.println("You are going to view all users");
                     USERS.listAllUsers();
+                    break;
                 case 2:
+                    System.out.println("You are going to view statistics for all users");
+                    for (User u : allUsers) {
+                        System.out.println("Displaying statistics for user: " + u.login);
+                        Misc.displayStatitics(u);
+                    }
                     break;
                 case 3:
+                    System.out.println("You are going one user account");
+                    //deleting a user, not super asdmin
+
+                    break;
+                case 4:
+                    System.out.println("You are going to delete all users except super admin ");
+                    USERS.deleteAllUsers();
+                    break;
+                case 5:
                     System.out.println("You are now going to add ordinary administrator account...");
-                    List<User> allUsers = USERS.listAll();
-                    List <User> adminUsers = new ArrayList<>();
-                    List <User> otherUsers =  new  ArrayList<>();
+                    //List <User> adminUsers = new ArrayList<>();  //not used right now, TO FIX::think about it later
+                    //List <User> otherUsers =  new  ArrayList<>();//not used right now, TO FIX::think about it later
                     //TO FIX find ou how to create list of objects and introduce two types of objects - admins and not admins
+                    System.out.println("The super administrator is: ");
+                    for (User u : allUsers) {
+                        if (u.hasRole(User.Role.SUPER_ADMIN)) {
+                            System.out.println(u.name + " " + u.surname);
+                        }
+                    }
                     System.out.println("The current administrators are: ");
                     for (User u : allUsers) {
-                        if (u.getAdmin()) {
-                            adminUsers.add(u);
+                        if (u.hasRole(User.Role.ADMIN)) {
+                            //adminUsers.add(u);
                             System.out.println(u.name + " " + u.surname);
                         }
                     }
                     System.out.println("All other users are: ");
                     for (User u : allUsers) {
-                        if (!(u.getAdmin())) {
-                            otherUsers.add(u);
+                        if (u.hasRole(User.Role.USER) && u.getRoles().size() == 1) {
+                            //otherUsers.add(u);
                             System.out.println(u.name + " " + u.surname);
                         }
                     }
@@ -303,21 +324,38 @@ public class Main {
                     String pass = Input.readStringSafe(scanner, "Enter your password to confirm adding new administrator account: ");
                     String newAdminLogin = Input.readStringSafe(scanner, "Enter new ordinary administrator login: ");
 
-
-                    boolean result = USERS.changeAdmin(currentUser.login, pass, newAdminLogin);
+                    boolean result = USERS.addAdmin(currentUser.login, pass, newAdminLogin);
                     if (result) {
                         System.out.println("Admin account added successfully");
                     } else {
                         System.out.println("Admin account addition failed");
                     }
                     break;
-                case 4:
-                    System.out.println("You are now going to remove administrator account...");
-                    break;
-                case 5:
-                    System.out.println("You are now going to remove all saved data...");
-                    break;
                 case 6:
+                    System.out.println("You are now going to remove administrator account...");
+                    sure = Input.readStringSafe(scanner, "Type YES to confirm removing administrator account: ");
+                    if (!"YES".equalsIgnoreCase(sure)) {
+                        System.out.println("Wrong input, try again.");
+                        break;
+                    }
+                    String removeAdminLogin = Input.readStringSafe(scanner, "Enter login of the ordinary administrator to remove: ");
+                    result = USERS.removeAdmin(removeAdminLogin);
+                    if (result) {
+                        System.out.println("Admin account removed successfully");
+                    } else {
+                        System.out.println("Admin account removal failed");
+                    }
+                    break;
+                case 7:
+                    System.out.println("You are now going to remove all saved data...");
+                    //TO FIX think about how to solve the issue, that the file will be recreated on exit...
+                    try {
+                        Files.deleteIfExists(DATA_FILE);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    break;
+                case 8:
                     System.out.println("You are going to return to main menu");
                     return;
                 default:
@@ -333,9 +371,11 @@ public class Main {
         switch (option) {
             case 1:
                 System.out.println("Case1");
+                //TO FIX: implement logic here
                 break;
             case 2:
                 System.out.println("Case2");
+                //TO FIX: implement logic here
                 break;
             case 3:
                 System.out.println("You are going to return to main menu");
