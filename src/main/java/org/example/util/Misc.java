@@ -2,6 +2,8 @@ package org.example.util;
 
 import org.example.model.User;
 
+import java.util.Scanner;
+
 public class Misc {
     private Misc() {}
 
@@ -58,5 +60,13 @@ public class Misc {
         //double spent = u.wallet.getSpentByCategory(cat);
         //double rem = u.wallet.getRemainingBudget(cat);
         //System.out.println("Spent in: " + cat + ": " + spent + ", remaining: " + rem);
+    }
+    public static boolean confirmAction(Scanner scanner) {
+        String sure = Input.readStringSafe(scanner, "Type YES to confirm account deletion: ");
+        if (!"YES".equalsIgnoreCase(sure)) {
+            System.out.println("Wrong input, try again.");
+            return false;
+        }
+        return true;
     }
 }

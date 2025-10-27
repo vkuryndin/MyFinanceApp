@@ -237,16 +237,13 @@ public class Main {
                         System.out.println("You are a super admin. You cannot delete this account");
                         break;
                     }
-                    String sure = Input.readStringSafe(scanner, "Type YES to confirm account deletion: ");
-                    if (!"YES".equalsIgnoreCase(sure)) {
-                        System.out.println("Wrong input, try again.");
-                        break;
-                    }
+                    if (!Misc.confirmAction(scanner)) break;
+
                     else {
                         String pass = Input.readStringSafe(scanner, "Enter your password to confirm deletion: ");
                         boolean result = USERS.deleteUser(currentUser.login, pass);
                         if (result) {
-                            System.out.println("Account deleted successfully");
+                            System.out.println("Account "+ currentUser.login + " deleted successfully");
                             currentUser = null;
                         } else {
                             System.out.println("Account deletion failed");
@@ -264,7 +261,6 @@ public class Main {
             }
         }
     }
-
     private static void runSuperAdminMenu() {
         while (true) {
             ConsoleMenu.showSuperAdminMenu();
@@ -283,13 +279,37 @@ public class Main {
                     }
                     break;
                 case 3:
-                    System.out.println("You are going one user account");
-                    //deleting a user, not super asdmin
-
+                    System.out.println("You are going to delete the user account you select...");
+                    String login = Input.readStringSafe(scanner, "Enter login of the user to delete:");
+                    if (login.isEmpty()) {
+                        System.out.println("Login cannot be empty. Operation cancelled.");
+                        break;
+                    }
+                    User userToDelete = USERS.find(login);
+                    if (userToDelete == null) {
+                        System.out.println("User not found. Operation cancelled.");
+                        break;
+                    }
+                    else if (userToDelete.equals(currentUser)) {
+                        System.out.println("You cannot delete yourself. Operation cancelled.");
+                        break;
+                    }
+                    else if (userToDelete.hasRole(User.Role.SUPER_ADMIN)) {
+                        System.out.println("You cannot delete super admin account. Operation cancelled.");
+                        break;
+                    } else {
+                        if (USERS.deleteUser(login)) {
+                            System.out.println("Account " + login + " deleted successfully");
+                            break;
+                        }
+                        else {
+                            System.out.println("Account " + login + "  deletion failed");
+                        }
+                    }
                     break;
                 case 4:
                     System.out.println("You are going to delete all users except super admin ");
-                    USERS.deleteAllUsers();
+                    if (Misc.confirmAction(scanner)) USERS.deleteAllUsers();
                     break;
                 case 5:
                     System.out.println("You are now going to add ordinary administrator account...");
@@ -332,12 +352,16 @@ public class Main {
                     }
                     break;
                 case 6:
+                    // super admin cannot be removed
+                    // ordinary admins can be removed by super admin
+
                     System.out.println("You are now going to remove administrator account...");
-                    sure = Input.readStringSafe(scanner, "Type YES to confirm removing administrator account: ");
-                    if (!"YES".equalsIgnoreCase(sure)) {
-                        System.out.println("Wrong input, try again.");
-                        break;
-                    }
+                    if (!Misc.confirmAction(scanner)) break;
+                    //sure = Input.readStringSafe(scanner, "Type YES to confirm removing administrator account: ");
+                    //if (!"YES".equalsIgnoreCase(sure)) {
+                    //    System.out.println("Wrong input, try again.");
+                    //    break;
+                    //}
                     String removeAdminLogin = Input.readStringSafe(scanner, "Enter login of the ordinary administrator to remove: ");
                     result = USERS.removeAdmin(removeAdminLogin);
                     if (result) {

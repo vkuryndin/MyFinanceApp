@@ -11,8 +11,10 @@ public class UsersRepo {
     private long nextId = 1L;
     //private static int firstUserCounter = 1;
 
-    private boolean isPreviousDataExists = false;  //special flag to decide whether we load UserRepo from file or not
+    private boolean isPreviousDataExists = false;  //special flag to decide whether we load UserRepo from the file or not
 
+    //registering users,
+    // if no data file to load from, first user to register will be a superadmin, this user cannot be deleted
     public User register (String login, String name, String surname, String rawPassword) {
         login = normalizeLogin(login);
         if (!isValidLogin(login)) {throw new IllegalArgumentException("Invalid login format");}
@@ -118,8 +120,8 @@ public class UsersRepo {
             System.out.println("Wrong login: " +login);
             return false;
         }
-        if (u.hasRole(User.Role.ADMIN)) {
-            System.out.println("This user [" +login + "] is already an admin");
+        if (u.hasRole(User.Role.SUPER_ADMIN)) {
+            System.out.println("This user [" +login + "] is a super admin. You cannot remove this role");
             return false;
         }
         u.removeRole(User.Role.ADMIN);
@@ -133,8 +135,18 @@ public class UsersRepo {
     }
     public void deleteAllUsers () {
         //deleting all users except super admin]
-        //TO FIX this code is not working!
-        try {
+        byLogin.entrySet().removeIf(e -> {
+            User u = e.getValue();
+            if (u != null && !u.hasRole(User.Role.SUPER_ADMIN))
+            {
+                byId.remove(u.id);
+                System.out.println("Removed user [" + u.login + "] from user list");
+                return true;
+            }
+            return false;
+        });
+
+        /* try {
             for (User u : byLogin.values()) {
                 if (!u.hasRole(User.Role.SUPER_ADMIN)) {
                     byLogin.remove(u.login,u);
@@ -146,8 +158,9 @@ public class UsersRepo {
         catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
             e.printStackTrace();
-
         }
+
+         */
     }
 
     // setters and getters for previous data exists
