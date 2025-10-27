@@ -74,19 +74,12 @@ public class User {
         return this.passwordHash !=null && BCrypt.checkpw(rawPassword, this.passwordHash);
     }
 
-    public void setAdmin(boolean value) {
-        isAdmin = value;
-    }
-    public boolean getAdmin () {return isAdmin;}
-
-    public boolean getSuperAdmin () {return isSuperAdmin;}
-
     public String getAdminStatus () {
         String s;
-        if (isAdmin) {
+        if (roles.contains(Role.ADMIN)) {
             s = "Ordinary Administrator";
         }
-        else if (isSuperAdmin) {
+        else if (roles.contains(Role.SUPER_ADMIN)) {
             s= "Super Administrator";
         }
         else {
