@@ -213,18 +213,7 @@ public class Main {
         case 6:
           // super admin cannot be removed
           // ordinary admins can be removed by super admin
-
-          System.out.println("You are now going to remove administrator account...");
-          if (!ConsoleUtils.confirmAction(scanner)) break;
-          String removeAdminLogin =
-              ConsoleInput.readStringSafe(
-                  scanner, "Enter login of the ordinary administrator to remove: ");
-          boolean result = USERS.removeAdmin(removeAdminLogin);
-          if (result) {
-            System.out.println("Admin account removed successfully");
-          } else {
-            System.out.println("Admin account removal failed");
-          }
+          ConsoleUtils.handleRemoveOrdinaryAdminAccount(scanner, USERS);
           break;
         case 7:
           System.out.println("You are now going to remove all saved data...");

@@ -5,6 +5,7 @@ import java.util.Scanner;
 import org.example.cli.ConsoleInput;
 import org.example.model.Transaction;
 import org.example.model.User;
+import org.example.repo.RepoExceptions;
 import org.example.repo.UsersRepo;
 
 public class ConsoleUtils {
@@ -152,10 +153,14 @@ public class ConsoleUtils {
 
     try {
       USERS.transfer(currentUser.login, toLogin, amount, note);
-      System.out.println("Transferred " + amount + "to " + toLogin);
+      System.out.println("Transferred " + amount + " to " + toLogin);
       System.out.println("Your new balance: " + currentUser.wallet.getBalance());
-    } catch (IllegalArgumentException e) {
-      System.out.println("Transfer fails " + e.getMessage());
+    } catch (RepoExceptions.Invalid e) {
+      System.out.println("Transfer failed: " + e.getMessage());
+    } catch (RepoExceptions.NotFound e) {
+      System.out.println("Receiver not found.");
+    } catch (RepoExceptions.Forbidden e) {
+      System.out.println("Action forbidden.");
     }
   }
 
@@ -171,15 +176,26 @@ public class ConsoleUtils {
     else {
       String pass =
           ConsoleInput.readStringSafe(scanner, "Enter your password to confirm deletion: ");
-      boolean result = USERS.deleteUser(currentUser.login, pass);
-      if (result) {
-        System.out.println("Account " + currentUser.login + " deleted successfully");
-      } else {
-        System.out.println("Account deletion failed");
+      try {
+        boolean result = USERS.deleteUser(currentUser.login, pass);
+        if (result) {
+          System.out.println("Account " + currentUser.login + " deleted successfully");
+          return true;
+        } else {
+          System.out.println("Account deletion failed");
+          return false;
+        }
+      } catch (RepoExceptions.Invalid e) {
+        System.out.println("Wrong password.");
+        return false;
+      } catch (RepoExceptions.Forbidden e) {
+        System.out.println("Cannot delete super admin.");
+        return false;
+      } catch (RepoExceptions.NotFound e) {
+        System.out.println("User not found.");
         return false;
       }
     }
-    return true;
   }
 
   public static boolean handleDeleteSelectedUserAccount(
@@ -201,11 +217,22 @@ public class ConsoleUtils {
       System.out.println("You cannot delete super admin account. Operation cancelled.");
       return false;
     } else {
-      if (USERS.deleteUser(login)) {
-        System.out.println("Account " + login + " deleted successfully");
-        return true;
-      } else {
-        System.out.println("Account " + login + "  deletion failed");
+      try {
+        if (USERS.deleteUser(login)) {
+          System.out.println("Account " + login + " deleted successfully");
+          return true;
+        } else {
+          System.out.println("Account deletion failed");
+          return false;
+        }
+      } catch (RepoExceptions.Forbidden e) {
+        System.out.println("Cannot delete super admin.");
+        return false;
+      } catch (RepoExceptions.NotFound e) {
+        System.out.println("User not found.");
+        return false;
+      } catch (RepoExceptions.Invalid e) {
+        System.out.println("Invalid data: " + e.getMessage());
         return false;
       }
     }
@@ -246,13 +273,48 @@ public class ConsoleUtils {
     String newAdminLogin =
         ConsoleInput.readStringSafe(scanner, "Enter new ordinary administrator login: ");
 
-    boolean result = USERS.addAdmin(currentUser.login, pass, newAdminLogin);
-    if (result) {
-      System.out.println("Admin account added successfully");
-    } else {
-      System.out.println("Admin account addition failed");
+    try {
+      USERS.addAdmin(currentUser.login, pass, newAdminLogin);
+      System.out.println("Admin account added successfully.");
+      return true;
+    } catch (RepoExceptions.Invalid e) {
+      System.out.println("Invalid data: " + e.getMessage());
+      return false;
+    } catch (RepoExceptions.NotFound e) {
+      System.out.println("User not found.");
+      return false;
+    } catch (RepoExceptions.Conflict e) {
+      System.out.println("User is already admin.");
+      return false;
+    } catch (RepoExceptions.Forbidden e) {
+      System.out.println("Only super admin can do this.");
+      return false;
     }
-    return result;
+  }
+
+  public static boolean handleRemoveOrdinaryAdminAccount(Scanner scanner, UsersRepo USERS) {
+    System.out.println("You are now going to remove administrator account...");
+    if (!ConsoleUtils.confirmAction(scanner)) return false;
+    String removeAdminLogin =
+        ConsoleInput.readStringSafe(
+            scanner, "Enter login of the ordinary administrator to remove: ");
+    try {
+      USERS.removeAdmin(removeAdminLogin);
+      System.out.println("Admin account removed successfully.");
+      return true;
+    } catch (RepoExceptions.NotFound e) {
+      System.out.println("User not found.");
+      return false;
+    } catch (RepoExceptions.Forbidden e) {
+      System.out.println("Cannot modify super admin.");
+      return false;
+    } catch (RepoExceptions.Invalid e) {
+      System.out.println("Invalid input: " + e.getMessage());
+      return false;
+    } catch (RepoExceptions.Conflict e) {
+      System.out.println("User is not an admin.");
+      return false;
+    }
   }
 
   public static boolean confirmAction(Scanner scanner) {

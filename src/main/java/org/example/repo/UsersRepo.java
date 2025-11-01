@@ -107,22 +107,19 @@ public class UsersRepo {
 
   public boolean addAdmin(String login, String pass, String newAdminLogin) {
     if (login == null || pass == null) {
-      System.out.println("login or pass cannot be null");
-      return false;
+      throw new RepoExceptions.Invalid("login or password cannot be null");
+      // System.out.println("login or pass cannot be null");
     }
     User u = byLogin.get(normalizeLogin(login));
     if (u == null || !u.checkPassword(pass)) {
-      System.out.println("Wrong password: " + pass + ", or user not found");
-      return false;
+      throw new RepoExceptions.Invalid("Invalid credentials or user not found");
     }
     User newAdmin = byLogin.get(normalizeLogin(newAdminLogin));
     if (newAdmin == null) {
-      System.out.println("Wrong login: " + newAdminLogin);
-      return false;
+      throw new RepoExceptions.NotFound("User not found: " + newAdminLogin);
     }
     if (newAdmin.hasRole(User.Role.ADMIN) || newAdmin.hasRole(User.Role.SUPER_ADMIN)) {
-      System.out.println("This user [" + newAdminLogin + "] is already an admin or super admin ");
-      return false;
+      throw new RepoExceptions.Conflict("User is already admin or super-admin: " + newAdminLogin);
     }
     newAdmin.addRole(User.Role.ADMIN);
     return true;
@@ -131,24 +128,23 @@ public class UsersRepo {
   public boolean removeAdmin(String login) {
     User u = byLogin.get(normalizeLogin(login));
     if (u == null) {
-      System.out.println("Wrong login: " + login);
-      return false;
+      throw new RepoExceptions.NotFound("User not found: " + login);
     }
     if (u.hasRole(User.Role.SUPER_ADMIN)) {
-      System.out.println("This user [" + login + "] is a super admin. You cannot remove this role");
-      return false;
+      throw new RepoExceptions.Forbidden("Cannot remove role from super-admin");
     }
     u.removeRole(User.Role.ADMIN);
     return true;
   }
 
+  // showing all users
   public void listAllUsers() {
-    System.out.println("List of all users: ");
     for (User u : byLogin.values()) {
       System.out.println(u);
     }
   }
 
+  // deleting all users except super admin
   public void deleteAllUsers() {
     // deleting all users except super admin
     byLogin

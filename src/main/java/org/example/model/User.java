@@ -35,14 +35,9 @@ public class User {
     this.name = name;
     this.surname = surname;
     setPassword(rawPassword);
-    // if (id == 1) this.isSuperAdmin = true; // this is the implementation with boolean flag
     if (id == 1) {
       roles.add(Role.SUPER_ADMIN); // this implementation with roles
     }
-    // I decided to create superadmin here and other admins.
-    // if (id ==1 && !isDataExists) this.isAdmin = true;  // we check here , whether this is the
-    // first user and we have no previous data
-    //
   }
 
   @Override
@@ -61,9 +56,7 @@ public class User {
         + '\''
         + ", roles='"
         + roles
-        +
-        // ", is administrator='" + isAdmin + '\'' +
-        '}';
+        + '}';
   }
 
   public void setPassword(String rawPassword) {
@@ -76,7 +69,6 @@ public class User {
             rawPassword,
             BCrypt.gensalt(
                 12)); // 12 is the number of rounds of hashing (simple enough for our purposes)
-    System.out.println("Password hash: " + this.passwordHash);
   }
 
   // using hash function to hash password, previous implementation - not used now.
@@ -91,9 +83,9 @@ public class User {
   }
 
   public boolean checkPassword(String rawPassword) {
-    System.out.println("Checking password for user " + this.login);
-    System.out.println("Raw password: " + rawPassword);
-    System.out.println("Password hash: " + this.passwordHash);
+    // System.out.println("Checking password for user " + this.login);
+    // System.out.println("Raw password: " + rawPassword);
+    // System.out.println("Password hash: " + this.passwordHash);
     // return this.passwordHash !=null && this.passwordHash.equals(sha256(rawPassword)); //previous
     // implementation
     return this.passwordHash != null && BCrypt.checkpw(rawPassword, this.passwordHash);
