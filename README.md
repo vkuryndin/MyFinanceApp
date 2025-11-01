@@ -1,1 +1,1 @@
-![Build Status](https://github.com/vladimirkuryndin/MyFinanceApp/actions/workflows/ci.yml/badge.svg)
+![Build Status](https://github.com/vkuryndin/MyFinanceApp/actions/workflows/ci.yml/badge.svg)
