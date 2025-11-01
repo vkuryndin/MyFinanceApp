@@ -1,6 +1,7 @@
 package org.example.app;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,7 +16,7 @@ import org.example.util.ConsoleUtils;
 
 public class Main {
 
-  private static final Scanner scanner = new Scanner(System.in);
+  private static final Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
   private static UsersRepo USERS = new UsersRepo();
   private static User currentUser = null;
   private static final Path DATA_FILE = Paths.get("data", "finance-data.json");

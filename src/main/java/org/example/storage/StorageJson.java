@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import org.example.repo.UsersRepo;
 
-public class StorageJson {
+public final class StorageJson {
 
   // constructor is private to prevent instantiation
   private StorageJson() {

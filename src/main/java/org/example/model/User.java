@@ -5,7 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import org.mindrot.jbcrypt.BCrypt; // importing special crypto library to deal with password hashing
 
-public class User {
+public final class User {
   public final long id;
   public final String login;
   public String name;
