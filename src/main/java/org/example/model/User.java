@@ -35,7 +35,7 @@ public class User {
     this.name = name;
     this.surname = surname;
     setPassword(rawPassword);
-    //if (id == 1) this.isSuperAdmin = true; // this is the implementation with boolean flag
+    // if (id == 1) this.isSuperAdmin = true; // this is the implementation with boolean flag
     if (id == 1) {
       roles.add(Role.SUPER_ADMIN); // this implementation with roles
     }

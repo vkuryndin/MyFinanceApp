@@ -28,8 +28,7 @@ public class StorageJson {
         GSON.toJson(usersRepo, w);
       }
     } catch (IOException e) {
-      System.err.println(
-          "Error saving users repository to file " + file + ": " + e.getMessage());
+      System.err.println("Error saving users repository to file " + file + ": " + e.getMessage());
     }
   }
 
