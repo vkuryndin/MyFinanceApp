@@ -1,10 +1,10 @@
-package org.example.util;
+package org.example.cli;
 
 // class to display all my console menus,
 // stores all menu in one place, removes clutter from the main.java
 
-public class ConsoleMenu {
-  private ConsoleMenu() {}
+public class ConsoleMenus {
+  private ConsoleMenus() {}
 
   // main actions menu
   public static void showMainActionsMenu() {
@@ -48,7 +48,7 @@ public class ConsoleMenu {
   }
 
   // LogIn menu
-  public static void showLogInMenu() {
+  public static void showLoginMenu() {
     System.out.println("You are now in the LogIn menu. Please select an option:");
     System.out.println("1. Log in");
     System.out.println("2. View documentation");

@@ -1,9 +1,9 @@
-package org.example.util;
+package org.example.cli;
 
 import java.util.Scanner;
 
-public class Input {
-  private Input() {}
+public class ConsoleInput {
+  private ConsoleInput() {}
 
   // reading string safely from the console
   // this is used for entering text to the app

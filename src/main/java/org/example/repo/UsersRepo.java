@@ -150,7 +150,7 @@ public class UsersRepo {
   }
 
   public void deleteAllUsers() {
-    // deleting all users except super admin]
+    // deleting all users except super admin
     byLogin
         .entrySet()
         .removeIf(
@@ -163,25 +163,9 @@ public class UsersRepo {
               }
               return false;
             });
-
-    /* try {
-        for (User u : byLogin.values()) {
-            if (!u.hasRole(User.Role.SUPER_ADMIN)) {
-                byLogin.remove(u.login,u);
-                byId.remove(u.id);
-                System.out.println("Removed user [" + u.login + "] from user list");
-            }
-        }
-    }
-    catch (Exception e) {
-        System.out.println("Error: " + e.getMessage());
-        e.printStackTrace();
-    }
-
-     */
   }
 
-  // setters and getters for previous data exists
+  // setters and getters for previous data exist
   public void setIsPreviousDataExists(boolean value) {
     this.isPreviousDataExists = value;
   }
