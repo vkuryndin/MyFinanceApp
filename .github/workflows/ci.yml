@@ -21,6 +21,16 @@ jobs:
       - name: Build & Checks
         run: ./gradlew clean build --no-daemon
 
+      - name: Upload build artifacts (JAR)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ github.run_number }}
+          path: |
+           build/libs/*.jar
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: SpotBugs (main & test)
         run: ./gradlew spotbugsMain spotbugsTest --no-daemon
 
