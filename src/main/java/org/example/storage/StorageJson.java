@@ -7,6 +7,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.Objects;
 import org.example.repo.UsersRepo;
 
 public final class StorageJson {
@@ -22,8 +23,14 @@ public final class StorageJson {
 
   // saving and loading users' repository to and from file
   public static void save(Path file, UsersRepo usersRepo) {
+    Objects.requireNonNull(file, "file");
+    Objects.requireNonNull(usersRepo, "usersRepo");
     try {
-      if (file.getParent() != null) Files.createDirectories(file.getParent());
+      Path parent = file.getParent();
+      if (parent != null) {
+        Files.createDirectories(
+            parent); // fixing spotbugs error NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE
+      }
       try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
         GSON.toJson(usersRepo, w);
       }

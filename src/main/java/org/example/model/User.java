@@ -3,6 +3,7 @@ package org.example.model;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Set;
 import org.mindrot.jbcrypt.BCrypt; // importing special crypto library to deal with password hashing
 
 public final class User {
@@ -116,7 +117,7 @@ public final class User {
     roles.remove(r);
   }
 
-  public java.util.EnumSet<Role> getRoles() {
-    return roles;
+  public Set<Role> getRoles() {
+    return Set.copyOf(roles);
   }
 }

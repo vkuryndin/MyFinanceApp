@@ -19,7 +19,7 @@ public class Wallet {
   }
 
   public List<Transaction> getTransactions() {
-    return transactions;
+    return List.copyOf(transactions); // fixing spotbugs error EL_EXSPOSE_REP
   }
 
   public double getBalance() {
@@ -40,7 +40,7 @@ public class Wallet {
   }
 
   public Map<String, Double> getBudgets() {
-    return budgets;
+    return Map.copyOf(budgets); // fixing spotbugs error EL_EXSPOSE_REP
   }
 
   public double getSpentByCategory(String category) {
