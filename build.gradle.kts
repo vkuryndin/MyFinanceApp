@@ -31,7 +31,7 @@ tasks.withType<Checkstyle> {
     reports {
         xml.required.set(false)
         html.required.set(true)
-        html.outputLocation.set(file("$buildDir/reports/checkstyle/${name}.html"))
+        html.outputLocation.set(layout.buildDirectory.file("reports/checkstyle/${name}.html"))
     }
 }
 checkstyle {
@@ -48,13 +48,13 @@ spotbugs {
 tasks.spotbugsMain {
     reports.create("html") {
         required = true
-        outputLocation = file("$buildDir/reports/spotbugs/main.html")
+        outputLocation = layout.buildDirectory.file("reports/spotbugs/main.html").get().asFile
     }
 }
 tasks.spotbugsTest {
     reports.create("html") {
         required = true
-        outputLocation = file("$buildDir/reports/spotbugs/test.html")
+        outputLocation = layout.buildDirectory.file("reports/spotbugs/test.html").get().asFile
     }
 }
 
