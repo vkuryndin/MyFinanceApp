@@ -1,5 +1,3 @@
-import com.github.spotbugs.snom.SpotBugsTask
-
 plugins {
     java
     id("checkstyle")
@@ -16,7 +14,6 @@ java {
     }
 }
 
-
 repositories {
     mavenCentral()
 }
@@ -28,6 +25,8 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.mindrot:jbcrypt:0.4")
 }
+
+/** Checkstyle */
 tasks.withType<Checkstyle> {
     reports {
         xml.required.set(false)
@@ -35,9 +34,6 @@ tasks.withType<Checkstyle> {
         html.outputLocation.set(file("$buildDir/reports/checkstyle/${name}.html"))
     }
 }
-
-
-
 checkstyle {
     toolVersion = "10.17.0"
     config = resources.text.fromFile("config/checkstyle/google_checks.xml")
@@ -45,17 +41,14 @@ checkstyle {
     maxWarnings = 0
 }
 
-// (Опционально) базовые настройки SpotBugs
+/** SpotBugs */
 spotbugs {
-    ignoreFailures = false // билд падает при найденных проблемах
+    ignoreFailures = false // падать при найденных проблемах
 }
-
-// HTML-отчёты для задач spotbugsMain / spotbugsTest
 tasks.spotbugsMain {
     reports.create("html") {
         required = true
         outputLocation = file("$buildDir/reports/spotbugs/main.html")
-        // setStylesheet("fancy-hist.xsl") // можно подключить стиль при желании
     }
 }
 tasks.spotbugsTest {
@@ -65,23 +58,7 @@ tasks.spotbugsTest {
     }
 }
 
-// чтобы общий gradle check автоматически гонял SpotBugs тоже
-tasks.named("check") {
-    dependsOn("spotbugsMain", "spotbugsTest")
-}
-
-
-// Чтобы gradle check запускал SpotBugs автоматически
-tasks.named("check") {
-    dependsOn("spotbugsMain", "spotbugsTest")
-}
-
-// Чтобы gradle check запускал SpotBugs автоматически
-tasks.named("check") {
-    dependsOn("spotbugsMain", "spotbugsTest")
-}
-
-
+/** Spotless */
 spotless {
     java {
         googleJavaFormat("1.22.0")
@@ -92,8 +69,9 @@ spotless {
     }
 }
 
+/** All checks build task */
 tasks.named("check") {
-    dependsOn("spotlessCheck")
+    dependsOn("spotlessCheck", "spotbugsMain", "spotbugsTest")
 }
 
 tasks.test {
