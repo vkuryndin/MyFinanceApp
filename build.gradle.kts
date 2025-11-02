@@ -23,26 +23,19 @@ repositories {
 }
 
 dependencies {
-    //testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    //testImplementation("org.junit.jupiter:junit-jupiter")
-    //testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.mindrot:jbcrypt:0.4")
-    //testImplementation("org.mockito:mockito-core:5.14.2")
-    //testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
 }
 
 /** Testing, Gradle 9 compatible */
 testing {
     suites {
         val test by getting(JvmTestSuite::class) {
-            useJUnitJupiter() // явный выбор фреймворка
-
+            useJUnitJupiter()
             dependencies {
                 implementation(platform("org.junit:junit-bom:5.10.0"))
                 implementation("org.junit.jupiter:junit-jupiter")
                 runtimeOnly("org.junit.platform:junit-platform-launcher")
-
                 implementation("org.mockito:mockito-core:5.14.2")
                 implementation("org.mockito:mockito-junit-jupiter:5.14.2")
             }
@@ -50,31 +43,37 @@ testing {
     }
 }
 
+/** ---------- Jacoco: распаковать ВНУТРЕННИЙ агент и прокинуть путь второму JVM ---------- */
+
+// 1) Копируем ВНУТРЕННИЙ jacocoagent.jar в build/jacoco/
+val unpackJacocoAgent by tasks.register<Copy>("unpackJacocoAgent") {
+    val agentZip = configurations.getByName("jacocoAgent").singleFile
+    from(zipTree(agentZip)) { include("jacocoagent.jar") }
+    into(layout.buildDirectory.dir("jacoco"))
+    rename { "jacocoagent.jar" }
+}
+
+// 2) Перед запуском тестов:
+//    - путь к внутреннему агенту: build/jacoco/jacocoagent.jar
+//    - отдельный файл покрытия для дочернего JVM: build/jacoco/jacoco-it.exec
 tasks.test {
-    // прокидываем путь к jacoco-агенту и итоговому .exec для дочернего JVM
+    dependsOn(unpackJacocoAgent)
+    useJUnitPlatform()
+
     doFirst {
-        val agentJar = configurations.getByName("jacocoAgent").singleFile.absolutePath
-        val dest = extensions.getByType(JacocoTaskExtension::class).destinationFile!!.absolutePath
-        systemProperty("jacoco.agent.path", agentJar)
-        systemProperty("jacoco.agent.destfile", dest)
+        val agentPath = layout.buildDirectory.file("jacoco/jacocoagent.jar").get().asFile.absolutePath
+        val itExec    = layout.buildDirectory.file("jacoco/jacoco-it.exec").get().asFile.absolutePath
+
+        systemProperty("jacoco.agent.path", agentPath)
+        systemProperty("jacoco.agent.destfile", itExec)
     }
 }
 
-// совместимость с IDE
-tasks.named("test") {
-    // useJUnitPlatform() при suites не обязателен, но не мешает
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-}
+// Чтобы отчёт всегда собирался после тестов
 tasks.withType<Test>().configureEach {
     jvmArgs("-Dfile.encoding=UTF-8")
     systemProperty("file.encoding", "UTF-8")
+    finalizedBy(tasks.jacocoTestReport)
 }
 
 /** Checkstyle */
@@ -92,9 +91,9 @@ checkstyle {
     maxWarnings = 0
 }
 
-/** SpotBugs — НЕ ТРОГАЛ */
+/** SpotBugs — как было */
 spotbugs {
-    ignoreFailures = false // fail if problems found
+    ignoreFailures = false
 }
 tasks.spotbugsMain {
     reports.create("html") {
@@ -124,12 +123,13 @@ spotless {
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
 
-    // соберём ВСЕ exec/ec, включая те, что пишет дочерний процесс
-    executionData.setFrom(fileTree(layout.buildDirectory.asFile.get()) {
+    // соберём ВСЕ exec/ec, включая jacoco-it.exec
+    executionData.setFrom(
+        fileTree(layout.buildDirectory.dir("jacoco")) {
+    //executionData.setFrom(fileTree(layout.buildDirectory.asFile.get()) {
         include("**/*.exec", "**/*.ec")
     })
 
-    // классы и исходники модуля
     classDirectories.setFrom(files(sourceSets.main.get().output))
     sourceDirectories.setFrom(files(sourceSets.main.get().allSource.srcDirs))
 
@@ -139,7 +139,11 @@ tasks.jacocoTestReport {
     }
 }
 
-/** All checks build task */
+/** All checks */
 tasks.named("check") {
     dependsOn("spotlessCheck", "spotbugsMain", "spotbugsTest")
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
 }
