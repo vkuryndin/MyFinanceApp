@@ -25,7 +25,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: app-${{ github.run_number }}
+          name: myfinanceapp-${{ github.ref_name }}-${{ github.run_number }}
           path: |
            build/libs/*.jar
           if-no-files-found: warn
