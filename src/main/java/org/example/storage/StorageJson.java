@@ -26,16 +26,28 @@ public final class StorageJson {
     Objects.requireNonNull(file, "file");
     Objects.requireNonNull(usersRepo, "usersRepo");
     try {
+      //  creating parent folders if absent)
       Path parent = file.getParent();
       if (parent != null) {
-        Files.createDirectories(
-            parent); // fixing spotbugs error NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE
+        Files.createDirectories(parent);
       }
+
+      //  оpening writer to UTF-8
       try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
         GSON.toJson(usersRepo, w);
       }
+
+      // making sure that file exits even if there is no data in it
+      if (!Files.exists(file)) {
+        Files.createFile(file);
+      }
+
+      //  showing log
+      System.out.println("Saved users repository to " + file.toAbsolutePath());
+
     } catch (IOException e) {
       System.err.println("Error saving users repository to file " + file + ": " + e.getMessage());
+      e.printStackTrace();
     }
   }
 

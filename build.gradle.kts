@@ -1,3 +1,5 @@
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import com.github.spotbugs.snom.SpotBugsTask
 
 plugins {
     java
@@ -29,11 +31,12 @@ dependencies {
     //testImplementation("org.mockito:mockito-core:5.14.2")
     //testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
 }
+
 /** Testing, Gradle 9 compatible */
 testing {
     suites {
         val test by getting(JvmTestSuite::class) {
-            useJUnitJupiter() // <-- явный выбор фреймворка
+            useJUnitJupiter() // явный выбор фреймворка
 
             dependencies {
                 implementation(platform("org.junit:junit-bom:5.10.0"))
@@ -46,13 +49,10 @@ testing {
         }
     }
 }
+
 tasks.test {
-    // чтобы все дочерние JVM писали в тот же файл покрытия
-    //extensions.configure<JacocoTaskExtension> {
-    //    isAppend = true
-    //}
+    // прокидываем путь к jacoco-агенту и итоговому .exec для дочернего JVM
     doFirst {
-        // передадим тестам путь к агенту и итоговому .exec
         val agentJar = configurations.getByName("jacocoAgent").singleFile.absolutePath
         val dest = extensions.getByType(JacocoTaskExtension::class).destinationFile!!.absolutePath
         systemProperty("jacoco.agent.path", agentJar)
@@ -60,17 +60,21 @@ tasks.test {
     }
 }
 
-// если используешь Jacoco:
+// совместимость с IDE
 tasks.named("test") {
-    // для совместимости с IDE: useJUnitPlatform() не обязателен при suites, но не мешает
+    // useJUnitPlatform() при suites не обязателен, но не мешает
 }
 
-tasks.jacocoTestReport {
-    dependsOn(tasks.test)
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-    }
+tasks.test {
+    useJUnitPlatform()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
+tasks.withType<Test>().configureEach {
+    jvmArgs("-Dfile.encoding=UTF-8")
+    systemProperty("file.encoding", "UTF-8")
 }
 
 /** Checkstyle */
@@ -88,9 +92,9 @@ checkstyle {
     maxWarnings = 0
 }
 
-/** SpotBugs */
+/** SpotBugs — НЕ ТРОГАЛ */
 spotbugs {
-    ignoreFailures = false // падать при найденных проблемах
+    ignoreFailures = false // fail if problems found
 }
 tasks.spotbugsMain {
     reports.create("html") {
@@ -116,11 +120,26 @@ spotless {
     }
 }
 
+/** Jacoco report — ЕДИНСТВЕННЫЙ блок */
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+
+    // соберём ВСЕ exec/ec, включая те, что пишет дочерний процесс
+    executionData.setFrom(fileTree(layout.buildDirectory.asFile.get()) {
+        include("**/*.exec", "**/*.ec")
+    })
+
+    // классы и исходники модуля
+    classDirectories.setFrom(files(sourceSets.main.get().output))
+    sourceDirectories.setFrom(files(sourceSets.main.get().allSource.srcDirs))
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
 /** All checks build task */
 tasks.named("check") {
     dependsOn("spotlessCheck", "spotbugsMain", "spotbugsTest")
-}
-
-tasks.test {
-    useJUnitPlatform()
 }
