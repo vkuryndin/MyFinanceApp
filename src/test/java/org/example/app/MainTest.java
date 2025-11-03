@@ -195,7 +195,7 @@ class MainTest {
                 "3", // View wallet
 
                 // Return and exit
-                "12", // Return to previous menu (from Main Actions)
+                "14", // Return to previous menu (from Main Actions)
                 "4" // Exit (from Actions menu)
                 )
             + "\n";
@@ -294,7 +294,7 @@ class MainTest {
                 "100",
                 "0",
                 "1", // Actions → Main actions
-                "12", // <-- теперь Return to previous menu
+                "14", // <-- теперь Return to previous menu
                 "4" // Exit (из Actions)
                 )
             + "\n";
@@ -376,7 +376,7 @@ class MainTest {
                 "salary",
                 "", // <-- дата (пусто = today)
                 "5", // View statistics
-                "12", // back to Actions
+                "14", // back to Actions
                 "4" // Exit
                 )
             + "\n";
@@ -416,7 +416,7 @@ class MainTest {
                 "0",
                 "1", // Main actions
                 "0", // invalid in main actions
-                "12", // <-- Return to previous menu (заменили 8)
+                "14", // <-- Return to previous menu (заменили 8)
                 "2", // Administrator actions
                 "0", // invalid inside admin menu
                 "8", // <-- Return to previous menu (если у тебя в админ-меню 1–4)

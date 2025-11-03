@@ -94,8 +94,10 @@ public class ConsoleMenusTest {
     assertTrue(s.contains("8. Update budget limit"));
     assertTrue(s.contains("9. Remove budget"));
     assertTrue(s.contains("10. Rename budget category"));
-    assertTrue(s.contains("11. Delete my user account"));
-    assertTrue(s.contains("12. Return to the previous menu"));
+    assertTrue(s.contains("11. Export Wallet data to JSON"));
+    assertTrue(s.contains("12. Import Wallet data to JSON"));
+    assertTrue(s.contains("13. Delete my user account"));
+    assertTrue(s.contains("14. Return to the previous menu"));
   }
 
   @Test

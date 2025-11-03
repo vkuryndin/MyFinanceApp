@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -85,3 +87,21 @@ jobs:
           path: build/reports/checkstyle
           if-no-files-found: ignore
           retention-days: 7
+
+      # ⬇⬇⬇ ДОБАВЛЕНО: генерация SVG-бейджей покрытия из XML JaCoCo
+      - name: Generate JaCoCo badges
+        if: github.event_name != 'pull_request'   # на PR не коммитим в репо
+        uses: cicirello/jacoco-badge-generator@v4
+        with:
+          jacoco-xml-file: build/reports/jacoco/test/jacocoTestReport.xml
+          output: badges/jacoco.svg
+          generate-branches-badge: true
+          branches-output: badges/branches.svg
+
+      - name: Commit badges
+        if: github.event_name != 'pull_request'
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: "badges/*.svg"
+          message: "chore(ci): update coverage badge"
+          default_author: github_actions

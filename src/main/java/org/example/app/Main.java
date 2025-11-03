@@ -186,17 +186,24 @@ public class Main {
           ConsoleUtils.handleRenameCategory(scanner, currentUser);
           break;
           // =================
+          // export /import to json
         case 11:
+          ConsoleUtils.handleExportJson(scanner, currentUser);
+          break;
+        case 12:
+          ConsoleUtils.handleImportJson(scanner, currentUser);
+          break;
+        case 13:
           if (ConsoleUtils.handleDeleteYourUserAccount(scanner, currentUser, USERS)) {
             currentUser = null;
             isloggedOut = true;
           }
           break;
-        case 12:
+        case 14:
           System.out.println("You are going to return to main menu");
           return;
         default:
-          System.out.println("Invalid option, Choose  1-12");
+          System.out.println("Invalid option, Choose  1-14");
           System.out.println("> ");
           break;
       }

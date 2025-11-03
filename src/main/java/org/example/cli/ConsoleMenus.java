@@ -20,8 +20,10 @@ public class ConsoleMenus {
     System.out.println("8. Update budget limit");
     System.out.println("9. Remove budget");
     System.out.println("10. Rename budget category");
-    System.out.println("11. Delete my user account");
-    System.out.println("12. Return to the previous menu");
+    System.out.println("11. Export Wallet data to JSON");
+    System.out.println("12. Import Wallet data to JSON");
+    System.out.println("13. Delete my user account");
+    System.out.println("14. Return to the previous menu");
     System.out.println("> ");
   }
 

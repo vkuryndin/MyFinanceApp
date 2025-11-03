@@ -1,63 +1,62 @@
 package org.example.util;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import org.example.cli.ConsoleInput;
 import org.example.model.Transaction;
 import org.example.model.User;
 import org.example.repo.RepoExceptions;
 import org.example.repo.UsersRepo;
+import org.example.storage.WalletJson;
 
 public class ConsoleUtils {
   private ConsoleUtils() {}
 
-  // ====== ДОБАВЛЕНО: формат даты и утилиты для ввода ======
-  private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
+  // private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
-  private static LocalDate askDate(Scanner scanner, String prompt) {
-    System.out.println(prompt);
-    System.out.print("> ");
-    String s = scanner.nextLine().trim();
-    if (s.isEmpty()) return null; // без границы
-    try {
-      return LocalDate.parse(s, ISO);
-    } catch (DateTimeParseException e) {
-      System.out.println("Invalid date format. Expected yyyy-MM-dd. Try again.");
-      return askDate(scanner, prompt);
+  /*
+    private static LocalDate askDate(Scanner scanner, String prompt) {
+      System.out.println(prompt);
+      System.out.print("> ");
+      String s = scanner.nextLine().trim();
+      if (s.isEmpty()) return null; // без границы
+      try {
+        return LocalDate.parse(s, ISO);
+      } catch (DateTimeParseException e) {
+        System.out.println("Invalid date format. Expected yyyy-MM-dd. Try again.");
+        return askDate(scanner, prompt);
+      }
     }
-  }
 
-  private static String askDateIsoOrToday(Scanner scanner, String prompt) {
-    System.out.println(prompt);
-    System.out.print("> ");
-    String s = scanner.nextLine().trim();
-    if (s.isEmpty()) return LocalDate.now().format(ISO);
-    try {
-      // проверим, что формат корректный
-      LocalDate.parse(s, ISO);
-      return s;
-    } catch (DateTimeParseException e) {
-      System.out.println("Invalid date format. Expected yyyy-MM-dd. Using today.");
-      return LocalDate.now().format(ISO);
+    private static String askDateIsoOrToday(Scanner scanner, String prompt) {
+      System.out.println(prompt);
+      System.out.print("> ");
+      String s = scanner.nextLine().trim();
+      if (s.isEmpty()) return LocalDate.now().format(ISO);
+      try {
+        // проверим, что формат корректный
+        LocalDate.parse(s, ISO);
+        return s;
+      } catch (DateTimeParseException e) {
+        System.out.println("Invalid date format. Expected yyyy-MM-dd. Using today.");
+        return LocalDate.now().format(ISO);
+      }
     }
-  }
 
-  private static Set<String> askCategories(Scanner scanner, String prompt) {
-    System.out.println(prompt);
-    System.out.print("> ");
-    String line = scanner.nextLine();
-    if (line == null || line.trim().isEmpty()) return Collections.emptySet();
-    String[] parts = line.split(",");
-    Set<String> set = new LinkedHashSet<>();
-    for (String p : parts) {
-      String v = p.trim();
-      if (!v.isEmpty()) set.add(v);
+    private static Set<String> askCategories(Scanner scanner, String prompt) {
+      System.out.println(prompt);
+      System.out.print("> ");
+      String line = scanner.nextLine();
+      if (line == null || line.trim().isEmpty()) return Collections.emptySet();
+      String[] parts = line.split(",");
+      Set<String> set = new LinkedHashSet<>();
+      for (String p : parts) {
+        String v = p.trim();
+        if (!v.isEmpty()) set.add(v);
+      }
+      return set;
     }
-    return set;
-  }
-
+  */
   // my older methods
 
   public static boolean checkLogonStatus(User currentUser) {
@@ -459,7 +458,8 @@ public class ConsoleUtils {
       System.out.println("No transactions for selected conditions.");
     } else {
       for (Transaction t : list) {
-        System.out.println(t.getDateIso() + " | " + t.type + " | " + t.title + " | " + t.amount);
+        System.out.println(
+            t.getDateIso() + " | " + t.getType() + " | " + t.getTitle() + " | " + t.getAmount());
       }
     }
 
@@ -567,6 +567,31 @@ public class ConsoleUtils {
       System.out.println(
           "Category not found. Please choose one from the list above or type CANCEL.");
       System.out.print("> ");
+    }
+  }
+
+  // handle methods for exporting and iporting json
+  public static void handleExportJson(Scanner scanner, User u) {
+    // String path = ConsoleInput.readStringSafe(scanner, "Enter file path for JSON export:");
+    try {
+      WalletJson.save(u);
+      // System.out.println("Exported to " + Path.of(path).toAbsolutePath());
+    } catch (Exception e) {
+      System.out.println("Export failed: " + e.getMessage());
+    }
+  }
+
+  public static void handleImportJson(Scanner scanner, User u) {
+    // String path = ConsoleInput.readStringSafe(scanner, "Enter JSON file path to import:");
+    // java.nio.file.Path p = java.nio.file.Path.of(path);
+    // if (!java.nio.file.Files.exists(p)) {
+    //    System.out.println("File not found: " + p.toAbsolutePath());
+    //    return;
+    // }
+    try {
+      WalletJson.loadInto(u);
+    } catch (Exception e) {
+      System.out.println("Import failed: " + e.getMessage());
     }
   }
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -11,12 +12,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
+import org.example.model.Transaction;
 import org.example.model.User;
 import org.example.model.Wallet;
 import org.example.repo.RepoExceptions;
 import org.example.repo.UsersRepo;
+import org.example.storage.WalletJson;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 /**
  * Тесты handler-методов из ConsoleUtils. ВНИМАНИЕ: у User.wallet — final, поэтому НЕ пытаемся его
@@ -102,6 +106,20 @@ public class ConsoleUtilsTest {
     } catch (ReflectiveOperationException e) {
       throw new AssertionError("Failed to construct User via reflection", e);
     }
+  }
+
+  /** Перехват System.out, чтобы проверять вывод */
+  private static String captureStdout(Runnable r) {
+    PrintStream old = System.out;
+    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+    PrintStream ps = new PrintStream(bos, true, java.nio.charset.StandardCharsets.UTF_8);
+    System.setOut(ps);
+    try {
+      r.run();
+    } finally {
+      System.setOut(old);
+    }
+    return bos.toString(java.nio.charset.StandardCharsets.UTF_8);
   }
 
   /* ---------- handleAddBudget ---------- */
@@ -447,5 +465,211 @@ public class ConsoleUtilsTest {
 
     doThrow(new RepoExceptions.Conflict("not admin")).when(repo).removeAdmin("a4x");
     assertFalse(ConsoleUtils.handleRemoveOrdinaryAdminAccount(scan("yes\na4x\n\n"), repo));
+  }
+
+  /* ---------- handleAdvancedStatistics ---------- */
+
+  @Test
+  @DisplayName("handleAdvancedStatistics: фильтр по периоду и категориям (food в январе)")
+  void advancedStats_basicFilter() {
+    User u = mkUser("u", "N", "S", "p", false);
+    var w = u.wallet;
+    w.addTransaction(new Transaction(1000.0, "salary", Transaction.Type.INCOME, "2025-01-01"));
+    w.addTransaction(new Transaction(200.0, "gift", Transaction.Type.INCOME, "2025-02-05"));
+    w.addTransaction(new Transaction(100.0, "food", Transaction.Type.EXPENSE, "2025-01-15"));
+    w.addTransaction(new Transaction(50.0, "food", Transaction.Type.EXPENSE, "2025-02-01"));
+    w.addTransaction(new Transaction(70.0, "transport", Transaction.Type.EXPENSE, "2025-01-20"));
+
+    Scanner in = scan("2025-01-10\n2025-01-31\nfood\n\n");
+    String out = captureStdout(() -> ConsoleUtils.handleAdvancedStatistics(in, u));
+
+    assertTrue(out.contains("— Expenses —"));
+    assertTrue(out.contains("food: 100"));
+    assertTrue(out.contains("Total expenses: 100"));
+    assertTrue(out.contains("— Incomes —"));
+    assertTrue(out.contains("No income data"));
+    assertTrue(out.contains("— Filtered transactions —"));
+    assertTrue(out.contains("2025-01-15 | EXPENSE | food | 100"));
+  }
+
+  @Test
+  @DisplayName("handleAdvancedStatistics: если TO раньше FROM — границы меняются местами")
+  void advancedStats_swappedBounds() {
+    User u = mkUser("u", "N", "S", "p", false);
+    u.wallet.addTransaction(new Transaction(10.0, "food", Transaction.Type.EXPENSE, "2025-01-10"));
+    Scanner in = scan("2025-02-01\n2025-01-01\nfood\n\n");
+    String out = captureStdout(() -> ConsoleUtils.handleAdvancedStatistics(in, u));
+    assertTrue(out.toLowerCase(Locale.ROOT).contains("swapping"), "Должно сообщить о swap");
+    assertTrue(out.contains("food: 10"));
+  }
+
+  /* ---------- handleAddIncome / handleAddExpense ---------- */
+
+  @Test
+  @DisplayName("handleAddIncome: создаёт Transaction с датой и суммой")
+  void handleAddIncome_ok() {
+    User u = mkUser("u", "N", "S", "p", false);
+    Scanner in = scan("123.45\nbonus\n2025-03-01\n");
+    ConsoleUtils.handleAddIncome(in, u);
+    assertEquals(123.45, u.wallet.sumIncome(), 1e-9);
+    assertTrue(
+        u.wallet.getTransactions().stream()
+            .anyMatch(
+                t ->
+                    t.getType() == Transaction.Type.INCOME
+                        && "bonus".equals(t.getTitle())
+                        && "2025-03-01".equals(t.getDateIso())
+                        && Math.abs(t.getAmount() - 123.45) < 1e-9));
+  }
+
+  @Test
+  @DisplayName("handleAddExpense: создаёт Transaction и печатает бюджетный алерт при превышении")
+  void handleAddExpense_ok() {
+    User u = mkUser("u", "N", "S", "p", false);
+    u.wallet.setBudget("food", 50.0);
+    Scanner in = scan("70\nfood\n2025-04-10\n");
+    String out = captureStdout(() -> ConsoleUtils.handleAddExpense(in, u));
+    assertEquals(70.0, u.wallet.sumExpense(), 1e-9);
+    assertTrue(
+        u.wallet.getTransactions().stream()
+            .anyMatch(
+                t ->
+                    t.getType() == Transaction.Type.EXPENSE
+                        && "food".equals(t.getTitle())
+                        && "2025-04-10".equals(t.getDateIso())
+                        && Math.abs(t.getAmount() - 70.0) < 1e-9));
+    assertTrue(out.contains("! "), "Ожидался алерт по бюджету");
+  }
+
+  /* ---------- handleUpdateBudgetLimit / handleRemoveBudget / handleRenameCategory ---------- */
+
+  @Test
+  @DisplayName("handleUpdateBudgetLimit: обновление лимита существующей категории")
+  void updateBudgetLimit_ok() {
+    User u = mkUser("u", "N", "S", "p", false);
+    u.wallet.setBudget("food", 100.0);
+    Scanner in = scan("food\n250\n");
+    String out = captureStdout(() -> ConsoleUtils.handleUpdateBudgetLimit(in, u));
+    assertTrue(out.contains("Budget updated: food -> 250"));
+    assertEquals(250.0, u.wallet.getBudgets().get("food"), 1e-9);
+  }
+
+  @Test
+  @DisplayName("handleRemoveBudget: удаляет бюджет категорию")
+  void removeBudget_ok() {
+    User u = mkUser("u", "N", "S", "p", false);
+    u.wallet.setBudget("travel", 300.0);
+    Scanner in = scan("travel\n");
+    String out = captureStdout(() -> ConsoleUtils.handleRemoveBudget(in, u));
+    assertTrue(out.contains("Budget removed: travel"));
+    assertFalse(u.wallet.getBudgets().containsKey("travel"));
+  }
+
+  @Test
+  @DisplayName("handleRenameCategory: переименование существующей категории")
+  void renameCategory_ok() {
+    User u = mkUser("u", "N", "S", "p", false);
+    u.wallet.setBudget("oldcat", 400.0);
+    Scanner in = scan("oldcat\nnewcat\n");
+    String out = captureStdout(() -> ConsoleUtils.handleRenameCategory(in, u));
+    assertTrue(
+        out.contains("Category renamed") && out.contains("oldcat") && out.contains("newcat"));
+    assertFalse(u.wallet.getBudgets().containsKey("oldcat"));
+    assertTrue(u.wallet.getBudgets().containsKey("newcat"));
+    assertEquals(400.0, u.wallet.getBudgets().get("newcat"), 1e-9);
+  }
+
+  /* ---------- confirmAction ---------- */
+
+  @Test
+  @DisplayName("confirmAction: YES/yes → true; иное → false (один Scanner)")
+  void confirmAction_yesNo_singleScanner() {
+    // 4 строки на 4 вызова; нигде нет пустой строки
+    Scanner in = scan("YES\nyes\nNo\nnope\n");
+
+    assertTrue(ConsoleUtils.confirmAction(in, "x")); // "YES" → true
+    assertTrue(ConsoleUtils.confirmAction(in, "x")); // "yes" → true
+    assertFalse(ConsoleUtils.confirmAction(in, "x")); // "No"  → false
+    assertFalse(ConsoleUtils.confirmAction(in, "x")); // "nope"→ false
+  }
+
+  /* ---------- handleViewWallet / handleViewStatistics (smoke) ---------- */
+
+  @Test
+  @DisplayName("handleViewWallet: печатает баланс, транзакции, бюджеты и алерты")
+  void viewWallet_smoke() {
+    User u = mkUser("u", "N", "S", "p", false);
+    u.wallet.addTransaction(
+        new Transaction(100.0, "salary", Transaction.Type.INCOME, "2025-01-01"));
+    u.wallet.addTransaction(new Transaction(50.0, "food", Transaction.Type.EXPENSE, "2025-01-02"));
+    u.wallet.setBudget("food", 40.0);
+    String out = captureStdout(() -> ConsoleUtils.handleViewWallet(u));
+    assertTrue(out.contains("Balance:"));
+    assertTrue(out.contains("Transactions:"));
+    assertTrue(out.contains("Budgets:"));
+    assertTrue(out.contains("! "));
+  }
+
+  @Test
+  @DisplayName("handleViewStatistics: агрегаты доходов/расходов и по категориям")
+  void viewStatistics_smoke() {
+    User u = mkUser("u", "N", "S", "p", false);
+    u.wallet.addTransaction(
+        new Transaction(100.0, "salary", Transaction.Type.INCOME, "2025-01-01"));
+    u.wallet.addTransaction(new Transaction(30.0, "food", Transaction.Type.EXPENSE, "2025-01-02"));
+    u.wallet.addTransaction(new Transaction(20.0, "food", Transaction.Type.EXPENSE, "2025-01-03"));
+    String out = captureStdout(() -> ConsoleUtils.handleViewStatistics(u));
+    assertTrue(out.contains("Wallet statistics"));
+    assertTrue(out.contains("Total income: 100"));
+    assertTrue(out.contains("Total expense: 50"));
+    assertTrue(out.contains("Incomes by category:"));
+    assertTrue(out.contains("Expenses by category:"));
+    assertTrue(out.contains("food: 50"));
+  }
+
+  /* ---------- handleExportJson / handleImportJson (static mock) ---------- */
+
+  @Test
+  @DisplayName("handleExportJson: вызывает WalletJson.save(u)")
+  void exportJson_callsSave() {
+    User u = mkUser("u", "N", "S", "p", false);
+    try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {
+      String out = captureStdout(() -> ConsoleUtils.handleExportJson(scan("\n"), u));
+      mocked.verify(() -> WalletJson.save(u), times(1));
+      assertFalse(out.contains("Export failed"));
+    }
+  }
+
+  @Test
+  @DisplayName("handleExportJson: при исключении печатает ошибку")
+  void exportJson_errorPrints() {
+    User u = mkUser("u", "N", "S", "p", false);
+    try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {
+      mocked.when(() -> WalletJson.save(u)).thenThrow(new RuntimeException("IO"));
+      String out = captureStdout(() -> ConsoleUtils.handleExportJson(scan("\n"), u));
+      assertTrue(out.contains("Export failed"));
+    }
+  }
+
+  @Test
+  @DisplayName("handleImportJson: вызывает WalletJson.loadInto(u)")
+  void importJson_callsLoadInto() {
+    User u = mkUser("u", "N", "S", "p", false);
+    try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {
+      String out = captureStdout(() -> ConsoleUtils.handleImportJson(scan("\n"), u));
+      mocked.verify(() -> WalletJson.loadInto(u), times(1));
+      assertFalse(out.contains("Import failed"));
+    }
+  }
+
+  @Test
+  @DisplayName("handleImportJson: при исключении печатает ошибку")
+  void importJson_errorPrints() {
+    User u = mkUser("u", "N", "S", "p", false);
+    try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {
+      mocked.when(() -> WalletJson.loadInto(u)).thenThrow(new RuntimeException("IO"));
+      String out = captureStdout(() -> ConsoleUtils.handleImportJson(scan("\n"), u));
+      assertTrue(out.contains("Import failed"));
+    }
   }
 }

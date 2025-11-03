@@ -86,13 +86,13 @@ public class UsersRepoTest {
     Transaction lastOut = alice.wallet.transactions.get(alice.wallet.transactions.size() - 1);
     Transaction lastIn = bob.wallet.transactions.get(bob.wallet.transactions.size() - 1);
 
-    assertEquals(Transaction.Type.EXPENSE, lastOut.type);
-    assertTrue(lastOut.title.toLowerCase().contains("transfer to bob"));
-    assertTrue(lastOut.title.toLowerCase().contains("gift"));
+    assertEquals(Transaction.Type.EXPENSE, lastOut.getType());
+    assertTrue(lastOut.getTitle().toLowerCase().contains("transfer to bob"));
+    assertTrue(lastOut.getTitle().toLowerCase().contains("gift"));
 
-    assertEquals(Transaction.Type.INCOME, lastIn.type);
-    assertTrue(lastIn.title.toLowerCase().contains("transfer from alice"));
-    assertTrue(lastIn.title.toLowerCase().contains("gift"));
+    assertEquals(Transaction.Type.INCOME, lastIn.getType());
+    assertTrue(lastIn.getTitle().toLowerCase().contains("transfer from alice"));
+    assertTrue(lastIn.getTitle().toLowerCase().contains("gift"));
   }
 
   @Test

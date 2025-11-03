@@ -23,8 +23,8 @@ public class Wallet {
   public void addTransaction(Transaction tx) {
     if (tx == null) return;
     transactions.add(tx);
-    if (tx.type == Transaction.Type.EXPENSE) {
-      spentByCat.merge(tx.title, tx.amount, Double::sum);
+    if (tx.getType() == Transaction.Type.EXPENSE) {
+      spentByCat.merge(tx.getTitle(), tx.getAmount(), Double::sum);
     }
   }
 
@@ -35,10 +35,10 @@ public class Wallet {
   public double getBalance() {
     double sum = 0;
     for (Transaction t : transactions) {
-      if (t.type == Transaction.Type.INCOME) {
-        sum += t.amount;
+      if (t.getType() == Transaction.Type.INCOME) {
+        sum += t.getAmount();
       } else {
-        sum -= t.amount;
+        sum -= t.getAmount();
       }
     }
     return sum;
@@ -98,8 +98,8 @@ public class Wallet {
   public double sumIncome() {
     double sum = 0;
     for (Transaction t : transactions) {
-      if (t.type == Transaction.Type.INCOME) {
-        sum += t.amount;
+      if (t.getType() == Transaction.Type.INCOME) {
+        sum += t.getAmount();
       }
     }
     return sum;
@@ -109,8 +109,8 @@ public class Wallet {
   public double sumExpense() {
     double sum = 0;
     for (Transaction t : transactions) {
-      if (t.type == Transaction.Type.EXPENSE) {
-        sum += t.amount;
+      if (t.getType() == Transaction.Type.EXPENSE) {
+        sum += t.getAmount();
       }
     }
     return sum;
@@ -119,8 +119,8 @@ public class Wallet {
   public Map<String, Double> incomesByCategory() {
     Map<String, Double> m = new LinkedHashMap<>();
     for (Transaction t : transactions) {
-      if (t.type == Transaction.Type.INCOME) {
-        m.merge(t.title, t.amount, Double::sum);
+      if (t.getType() == Transaction.Type.INCOME) {
+        m.merge(t.getTitle(), t.getAmount(), Double::sum);
       }
     }
     return m;
@@ -129,8 +129,8 @@ public class Wallet {
   public Map<String, Double> expensesByCategory() {
     Map<String, Double> m = new LinkedHashMap<>();
     for (Transaction t : transactions) {
-      if (t.type == Transaction.Type.EXPENSE) {
-        m.merge(t.title, t.amount, Double::sum);
+      if (t.getType() == Transaction.Type.EXPENSE) {
+        m.merge(t.getTitle(), t.getAmount(), Double::sum);
       }
     }
     return m;
@@ -154,7 +154,7 @@ public class Wallet {
 
     List<Transaction> out = new ArrayList<>();
     for (Transaction tx : transactions) {
-      if (type != null && tx.type != type) continue;
+      if (type != null && tx.getType() != type) continue;
 
       // Дата берётся из Transaction#getDate() (мы добавили в Transaction dateIso и getDate()).
       LocalDate d = tx.getDate();
@@ -162,7 +162,7 @@ public class Wallet {
       if (t != null && d.isAfter(t)) continue;
 
       if (!cats.isEmpty()) {
-        if (!cats.contains(normalizeCat(tx.title))) continue;
+        if (!cats.contains(normalizeCat(tx.getTitle()))) continue;
       }
       out.add(tx);
     }
@@ -174,7 +174,7 @@ public class Wallet {
   public double sumExpense(LocalDate from, LocalDate to, Set<String> categories) {
     double sum = 0;
     for (Transaction tx : findTransactions(from, to, categories, Transaction.Type.EXPENSE)) {
-      sum += tx.amount;
+      sum += tx.getAmount();
     }
     return sum;
   }
@@ -182,7 +182,7 @@ public class Wallet {
   public double sumIncome(LocalDate from, LocalDate to, Set<String> categories) {
     double sum = 0;
     for (Transaction tx : findTransactions(from, to, categories, Transaction.Type.INCOME)) {
-      sum += tx.amount;
+      sum += tx.getAmount();
     }
     return sum;
   }
@@ -191,7 +191,7 @@ public class Wallet {
       LocalDate from, LocalDate to, Set<String> categories) {
     Map<String, Double> m = new LinkedHashMap<>();
     for (Transaction tx : findTransactions(from, to, categories, Transaction.Type.EXPENSE)) {
-      m.merge(normalizeCat(tx.title), tx.amount, Double::sum);
+      m.merge(normalizeCat(tx.getTitle()), tx.getAmount(), Double::sum);
     }
     return m;
   }
@@ -200,7 +200,7 @@ public class Wallet {
       LocalDate from, LocalDate to, Set<String> categories) {
     Map<String, Double> m = new LinkedHashMap<>();
     for (Transaction tx : findTransactions(from, to, categories, Transaction.Type.INCOME)) {
-      m.merge(normalizeCat(tx.title), tx.amount, Double::sum);
+      m.merge(normalizeCat(tx.getTitle()), tx.getAmount(), Double::sum);
     }
     return m;
   }

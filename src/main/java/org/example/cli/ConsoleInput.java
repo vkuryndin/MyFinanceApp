@@ -12,7 +12,7 @@ public class ConsoleInput {
 
   private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
-  // reading string safely from the console
+  // reading string safely from the console,
   // this is used for entering text to the app
   public static String readStringSafe(Scanner scanner, String prompt) {
     while (true) {
