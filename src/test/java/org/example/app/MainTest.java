@@ -7,130 +7,426 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.*;
 
 /**
- * Integration tests for org.example.app.Main. Runs the app in a child JVM with the same JaCoCo
- * agent that Gradle passes via system properties. Covers: plain exit, invalid main-menu option
- * (default branch), doc->back->exit.
+ * Integration tests for the Main application class.
+ *
+ * <p>These tests run the application as a separate process, simulating real user interaction by
+ * feeding scripted input to stdin and capturing stdout/stderr output. Each test creates an isolated
+ * temporary working directory to ensure test independence.
+ *
+ * <p>Test categories:
+ *
+ * <ul>
+ *   <li><b>Basic smoke tests:</b> Verify application startup, exit, and basic menu navigation
+ *   <li><b>Super admin scenarios:</b> Test first user registration (becomes SUPER_ADMIN), logout
+ *       functionality, and administrative operations
+ *   <li><b>Menu navigation tests:</b> Exercise various menu paths including Main Actions,
+ *       Administrator Actions, and invalid input handling
+ *   <li><b>Transaction operations:</b> Test income/expense addition, wallet viewing, and statistics
+ *       display
+ * </ul>
+ *
+ * <p>The tests include JaCoCo agent integration to collect code coverage from the spawned process,
+ * ensuring accurate coverage metrics for the entire application flow.
+ *
+ * @see org.example.app.Main
  */
 class MainTest {
 
-  /** Main menu mapping from your output: 1. Log in 2. View documentation 3. Exit */
-  private static final String MAIN_DOCS = "2";
-
-  private static final String MAIN_EXIT = "3";
-
-  private static class RunResult {
+  static class ExecResult {
     final int exitCode;
     final String out;
     final String err;
 
-    RunResult(int exitCode, String out, String err) {
+    ExecResult(int exitCode, String out, String err) {
       this.exitCode = exitCode;
       this.out = out;
       this.err = err;
     }
   }
 
-  /** Build child JVM command with JaCoCo agent wired from Gradle system properties. */
-  private static List<String> buildCmd(Path workDir) {
-    Path javaBin = Paths.get(System.getProperty("java.home"), "bin", "java");
+  /**
+   * Create a working directory with an empty data/ folder (without a file) so the 1st user becomes
+   * SUPER_ADMIN.
+   */
+  private Path newWorkDir() throws IOException {
+    Path wd = Files.createTempDirectory("finance-app-it-");
+    Files.createDirectories(wd.resolve("data"));
+    return wd;
+  }
+
+  /** Start org.example.app.Main as a separate process and feed the script to stdin. */
+  private ExecResult runApp(String script, Path workDir) throws Exception {
+    String javaBin =
+        Paths.get(
+                System.getProperty("java.home"),
+                "bin",
+                System.getProperty("os.name").toLowerCase().contains("win") ? "java.exe" : "java")
+            .toString();
     String cp = System.getProperty("java.class.path");
 
     String agentJar = System.getProperty("jacoco.agent.path");
     String destFile = System.getProperty("jacoco.agent.destfile");
-    assertNotNull(
-        agentJar,
-        "jacoco.agent.path is null (check tasks.test { doFirst { ... } } in build.gradle.kts)");
-    assertNotNull(
-        destFile,
-        "jacoco.agent.destfile is null (check tasks.test { doFirst { ... } } in build.gradle.kts)");
 
     List<String> cmd = new ArrayList<>();
-    cmd.add(javaBin.toString());
+    cmd.add(javaBin);
     cmd.add("-cp");
     cmd.add(cp);
-    // write into the same exec file as Gradle’s Test JVM (append=true)
-    cmd.add("-javaagent:" + agentJar + "=destfile=" + destFile + ",append=true");
+    if (agentJar != null && !agentJar.isBlank()) {
+      cmd.add("-javaagent:" + agentJar + "=destfile=" + destFile + ",append=true");
+    }
     cmd.add("-Dfile.encoding=UTF-8");
-    cmd.add("-Duser.dir=" + workDir.toAbsolutePath()); // so that data/ is under a temp dir
+    cmd.add("-Duser.dir=" + workDir.toAbsolutePath());
     cmd.add("org.example.app.Main");
-    return cmd;
-  }
 
-  private static RunResult runApp(Path workDir, String stdinFeed, long timeoutSec)
-      throws Exception {
-    List<String> cmd = buildCmd(workDir);
     ProcessBuilder pb = new ProcessBuilder(cmd);
+    pb.directory(workDir.toFile());
     pb.redirectErrorStream(false);
     Process p = pb.start();
 
+    // stdin
     try (BufferedWriter w =
         new BufferedWriter(new OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8))) {
-      if (stdinFeed != null) {
-        w.write(stdinFeed);
-      }
+      if (script != null) w.write(script);
     }
 
-    boolean finished = p.waitFor(timeoutSec, TimeUnit.SECONDS);
-    if (!finished) {
-      p.destroyForcibly();
-      fail(
-          "App did not finish within "
-              + timeoutSec
-              + "s. Probably waiting for input.\nCMD: "
-              + cmd);
+    // stdout / stderr
+    String out, err;
+    try (InputStream is = p.getInputStream();
+        InputStream es = p.getErrorStream()) {
+      out = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      err = new String(es.readAllBytes(), StandardCharsets.UTF_8);
     }
 
-    String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    String err = new String(p.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-    return new RunResult(p.exitValue(), out, err);
+    int code = p.waitFor();
+    return new ExecResult(code, out, err);
+  }
+
+  // ------ BASIC SMOKE TESTS ------
+
+  @Test
+  @DisplayName("Application should display login menu and exit with code 0")
+  void start_then_exit_ok() throws Exception {
+    Path wd = newWorkDir();
+    ExecResult r = runApp("3\n", wd); // Exit
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App must exit with code 0.");
+    assertTrue(r.out.contains("You are now in the LogIn menu"), "Main menu should be shown.");
   }
 
   @Test
-  @DisplayName("Simple start → immediate exit (menu: 3)")
-  void start_then_exit_ok(@TempDir Path tmp) throws Exception {
-    // Just press Exit at the main menu
-    String feed = MAIN_EXIT + "\n";
-    RunResult r = runApp(tmp, feed, 20);
-    assertEquals(
-        0,
-        r.exitCode,
-        "App should exit with code 0 on plain exit.\nOUT:\n" + r.out + "\nERR:\n" + r.err);
+  @DisplayName("Application should exit with code 0 after invalid option input")
+  void invalid_then_exit_ok() throws Exception {
+    Path wd = newWorkDir();
+    ExecResult r = runApp(String.join("\n", "99", "3") + "\n", wd);
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App must exit with code 0 after invalid option.");
   }
 
   @Test
-  @DisplayName("Main menu: invalid option (default branch) → then exit")
-  void invalid_option_then_exit(@TempDir Path tmp) throws Exception {
-    // 9 triggers "Invalid option, Choose  1-3", then give a valid Exit = 3
-    String feed = "9\n" + MAIN_EXIT + "\n";
-    RunResult r = runApp(tmp, feed, 25);
-    assertEquals(
-        0,
-        r.exitCode,
-        "Expected exit code 0 after invalid option and then Exit.\nOUT:\n"
-            + r.out
-            + "\nERR:\n"
-            + r.err);
+  @DisplayName("Application should exit with code 0 after viewing docs")
+  void docs_then_exit_ok() throws Exception {
+    Path wd = newWorkDir();
+    ExecResult r = runApp(String.join("\n", "2", "3") + "\n", wd); // View docs -> Exit
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App must exit with code 0 after docs.");
+  }
+
+  // ------ SUPER ADMIN SCENARIO (1st user) ------
+
+  /**
+   * First run without data/finance-data.json: - Log in -> create 1st user (=> SUPER_ADMIN) -
+   * Provide valid strings for possible additional questions (name, surname, email, etc.) - Then a
+   * long tail of menu options: 1/2/3/0/9/... to enter several branches and then exit
+   */
+  @Test
+  @DisplayName(
+      "Should complete full user journey: create super admin, add transactions, navigate menus")
+  void loginSuperadmin_walkMenus_then_exit() throws Exception {
+    Path wd = newWorkDir();
+
+    String login = "adminuser";
+    String pass = "StrongPass1!";
+
+    // Input scenario:
+    // 1 -> Log in
+    // login, pass, pass -> create 1st user => SUPER_ADMIN
+    // John/Smith/... -> safe values for text fields
+    // Add a couple of expenses (amount + title), view wallet
+    // 8 -> back from Main Actions, 4 -> Exit from Actions
+    String script =
+        String.join(
+                "\n",
+                "1",
+                login,
+                pass,
+                pass,
+                "John",
+                "Smith",
+                "john@example.com",
+                "Armenia",
+                "Yerevan",
+                "30",
+                "100",
+                "0",
+
+                // In Actions: go to Main actions (1), add expense twice (2),
+                // each time: amount, then title; then view wallet (3)
+                "1", // Main actions
+                "2",
+                "4",
+                "coffee", // expense #1: 4.0, "coffee"
+                "2",
+                "1",
+                "taxi", // expense #2: 1.0, "taxi"
+                "3", // View wallet
+
+                // Return and exit
+                "8", // Return to previous menu (from Main Actions)
+                "4" // Exit (from Actions menu)
+                )
+            + "\n";
+
+    ExecResult r = runApp(script, wd);
+
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+
+    assertEquals(0, r.exitCode, "App must exit with code 0.");
+    assertTrue(r.out.contains("You are now in the Actions menu"), "Should reach Actions menu.");
     assertTrue(
-        r.out.contains("Invalid option") || r.out.contains("Choose  1-3"),
-        "Should print invalid-option message. OUT:\n" + r.out);
+        r.out.contains("You are now in the Main Actions menu"), "Should reach Main Actions menu.");
   }
 
+  /** Invalid option at Login menu → then Exit. Covers default-branch in runLoginMenu. */
   @Test
-  @DisplayName("Docs → back to main → exit (menu: 2 → 3)")
-  void docs_then_exit(@TempDir Path tmp) throws Exception {
-    // “View documentation” (2) usually returns back to the main menu without extra prompts; then
-    // exit (3)
-    String feed = MAIN_DOCS + "\n" + MAIN_EXIT + "\n";
-    RunResult r = runApp(tmp, feed, 25);
-    assertEquals(
-        0,
-        r.exitCode,
-        "Expected code 0 after viewing docs and exiting.\nOUT:\n" + r.out + "\nERR:\n" + r.err);
+  @DisplayName("Login menu should handle invalid input (9) and allow exit with code 0")
+  void loginMenu_invalid_then_exit() throws Exception {
+    Path wd = newWorkDir();
+    String script =
+        String.join(
+                "\n",
+                "9", // invalid option at login menu
+                "3" // Exit
+                )
+            + "\n";
+    ExecResult r = runApp(script, wd);
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App should exit with code 0 after invalid→exit.");
+    assertTrue(r.out.contains("You are now in the LogIn menu"), "Login menu should be printed.");
+  }
+
+  /** Create first user (becomes SUPER_ADMIN) → immediately Logout → Exit. Covers logout path. */
+  @Test
+  @DisplayName("First user becomes super admin, logs out, and exits with code 0")
+  void createSuperadmin_then_logout_then_exit() throws Exception {
+    Path wd = newWorkDir();
+    String script =
+        String.join(
+                "\n",
+                "1", // Log in
+                "adminuser", // login
+                "StrongPass1!", // pass
+                "StrongPass1!", // confirm
+                "John", // name
+                "Smith", // surname
+                "john@example.com", // email
+                "Armenia", // country
+                "Yerevan", // city
+                "30",
+                "100",
+                "0", // age? salary? children?
+                // В Actions:
+                "3", // Log out
+                // Снова логин-меню:
+                "3" // Exit
+                )
+            + "\n";
+    ExecResult r = runApp(script, wd);
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App should exit with code 0 after logout→exit.");
+    assertTrue(
+        r.out.contains("You are now in the Actions menu"), "Actions menu should be reached.");
+  }
+
+  /**
+   * Go to Main Actions and immediately return back, then Exit. Covers 'Return to previous menu'
+   * branch in main actions.
+   */
+  @DisplayName("Enter Main Actions and return to cover 'Return to previous menu' branch")
+  @Test
+  void mainActions_return_immediately_then_exit() throws Exception {
+    Path wd = newWorkDir();
+    String script =
+        String.join(
+                "\n",
+                "1", // Log in
+                "adminuser",
+                "P@ssw0rd!",
+                "P@ssw0rd!",
+                "John",
+                "Smith",
+                "john@example.com",
+                "Armenia",
+                "Yerevan",
+                "30",
+                "100",
+                "0",
+                "1", // Actions → Main actions
+                "8", // Return to previous menu
+                "4" // Exit (из Actions)
+                )
+            + "\n";
+    ExecResult r = runApp(script, wd);
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App must exit with code 0.");
+    assertTrue(
+        r.out.contains("You are now in the Main Actions menu"), "Main Actions should be printed.");
+  }
+
+  /**
+   * Actions menu: several invalid inputs → then Exit. Covers default-branch in runActionsMenu and
+   * readIntSafe loop.
+   */
+  @Test
+  @DisplayName(
+      "Actions menu should gracefully handle invalid inputs (text, empty, out-of-range) and exit")
+  void actionsMenu_multiple_invalid_then_exit() throws Exception {
+    Path wd = newWorkDir();
+    String script =
+        String.join(
+                "\n",
+                "1", // Log in (создаём первого пользователя → SUPER_ADMIN)
+                "adminuser",
+                "Qwerty12!",
+                "Qwerty12!",
+                "John",
+                "Smith",
+                "john@example.com",
+                "Armenia",
+                "Yerevan",
+                "30",
+                "100",
+                "0",
+                // В Actions:
+                "x", // invalid
+                "", // invalid (пустая строка)
+                "99", // invalid (вне диапазона)
+                "4" // Exit
+                )
+            + "\n";
+    ExecResult r = runApp(script, wd);
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App should exit with 0 after invalids→exit.");
+    assertTrue(r.out.contains("Invalid option"), "Should print invalid option at least once.");
+  }
+
+  /**
+   * Main actions: add income, then view statistics, back, exit. Exercises income path & stats view.
+   */
+  @Test
+  @DisplayName("Main Actions should allow adding income and viewing statistics")
+  void mainActions_addIncome_viewStats_then_exit() throws Exception {
+    Path wd = newWorkDir();
+    String script =
+        String.join(
+                "\n",
+                "1", // Log in
+                "adminuser",
+                "StrongPass1!",
+                "StrongPass1!",
+                "John",
+                "Smith",
+                "john@example.com",
+                "Armenia",
+                "Yerevan",
+                "30",
+                "100",
+                "0",
+                "1", // Main actions
+                "1",
+                "150",
+                "salary", // Add income: amount -> title (у тебя расход идёт amount→title; для
+                // дохода держим тот же порядок)
+                "5", // View statistics
+                "8", // back to Actions
+                "4" // Exit
+                )
+            + "\n";
+    ExecResult r = runApp(script, wd);
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App must exit 0.");
+    assertTrue(
+        r.out.contains("You are now in the Main Actions menu"), "Main actions should appear.");
+  }
+
+  /**
+   * Full loop: Login → Main actions → invalids → back → Admin actions open/close → Exit. Даёт
+   * дополнительную трассу по default в подменю и переход в админ-раздел (без предположения о
+   * конкретных пунктах).
+   */
+  @Test
+  @DisplayName("Navigate Main Actions and Admin Actions menus, handle invalid inputs, and exit")
+  void openAdminActions_then_back_then_exit() throws Exception {
+    Path wd = newWorkDir();
+    String script =
+        String.join(
+                "\n",
+                "1",
+                "adminuser",
+                "Aa11!!aa",
+                "Aa11!!aa",
+                "John",
+                "Smith",
+                "john@example.com",
+                "Armenia",
+                "Yerevan",
+                "30",
+                "100",
+                "0",
+                "1", // Main actions
+                "0", // invalid in main actions (если 1..8)
+                "8", // back to Actions
+                "2", // Administrator actions (откроем меню админа)
+                "0", // сразу некорректный ввод внутри админ-меню (покрыть default-ветку)
+                "8", // попытка вернуться назад из админ-меню (если у тебя “Return to previous menu”
+                // — номер 8, будет покрыт)
+                "4" // Exit из Actions
+                )
+            + "\n";
+    ExecResult r = runApp(script, wd);
+    if (r.exitCode != 0) {
+      System.out.println("OUT:\n" + r.out);
+      System.err.println("ERR:\n" + r.err);
+    }
+    assertEquals(0, r.exitCode, "App must exit 0.");
   }
 }

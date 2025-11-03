@@ -10,6 +10,30 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+/**
+ * Unit tests for the StorageJson persistence layer.
+ *
+ * <p>Tests validate JSON serialization/deserialization of UsersRepo including:
+ *
+ * <ul>
+ *   <li><b>Load operations:</b> Loading from non-existent, empty, and malformed JSON files
+ *   <li><b>Save operations:</b> Persisting repository to JSON with proper directory creation
+ *   <li><b>Round-trip persistence:</b> Verifying data integrity after save/load cycle
+ *   <li><b>State flag management:</b> Tracking {@code isPreviousDataExists} flag for first-run
+ *       detection
+ *   <li><b>Error handling:</b> Graceful handling of IOException and null arguments
+ * </ul>
+ *
+ * <p>The {@code isPreviousDataExists} flag is used to determine if the first user should become
+ * SUPER_ADMIN. When loading from a file successfully, this flag is set to {@code true}; for new
+ * repositories, it remains {@code false}.
+ *
+ * <p>Uses JUnit's {@code @TempDir} to provide isolated temporary directories for each test. The
+ * implementation uses GSON for JSON serialization with pretty-printing enabled.
+ *
+ * @see org.example.storage.StorageJson
+ * @see org.example.repo.UsersRepo
+ */
 public class StorageJsonTest {
 
   @TempDir Path tmp;

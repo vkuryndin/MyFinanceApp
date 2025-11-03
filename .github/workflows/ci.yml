@@ -1,36 +1,44 @@
 name: CI
+
 on:
   push:
   pull_request:
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Build & Checks
-        run: ./gradlew clean build --no-daemon
+      # ГЛАВНЫЙ шаг: check зависит от jacocoTestReport и jacocoCoverage (порог 50%)
+      - name: Build & Checks (with coverage gate)
+        run: ./gradlew clean check --no-daemon --stacktrace
 
+      # JAR публикуем только если всё зелёное
       - name: Upload build artifacts (JAR)
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: myfinanceapp-${{ github.ref_name }}-${{ github.run_number }}
-          path: |
-           build/libs/*.jar
+          path: build/libs/*.jar
           if-no-files-found: warn
           retention-days: 7
 
+      # SpotBugs отдельно (можно убрать, если уже завязан на check)
       - name: SpotBugs (main & test)
         run: ./gradlew spotbugsMain spotbugsTest --no-daemon
 
@@ -43,3 +51,33 @@ jobs:
             build/reports/spotbugs/main.html
             build/reports/spotbugs/test.html
           if-no-files-found: ignore
+          retention-days: 7
+
+      # --- Отчёты тестов и покрытия, всегда прикрепляем ---
+      - name: Upload JUnit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-test-report
+          path: build/reports/tests/test
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload JaCoCo HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-html
+          path: build/reports/jacoco/test/html
+          if-no-files-found: warn
+          retention-days: 7
+
+      # Если используешь Checkstyle — тоже приложим
+      - name: Upload Checkstyle reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-reports
+          path: build/reports/checkstyle
+          if-no-files-found: ignore
+          retention-days: 7

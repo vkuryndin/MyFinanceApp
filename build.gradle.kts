@@ -1,5 +1,7 @@
 import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import com.github.spotbugs.snom.SpotBugsTask
+import java.math.BigDecimal
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 
 plugins {
     java
@@ -95,12 +97,14 @@ checkstyle {
 spotbugs {
     ignoreFailures = false
 }
+
 tasks.spotbugsMain {
     reports.create("html") {
         required = true
         outputLocation = layout.buildDirectory.file("reports/spotbugs/main.html").get().asFile
     }
 }
+
 tasks.spotbugsTest {
     reports.create("html") {
         required = true
@@ -119,7 +123,7 @@ spotless {
     }
 }
 
-/** Jacoco report — ЕДИНСТВЕННЫЙ блок */
+/** Jacoco report — the only block */
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
 
@@ -140,10 +144,46 @@ tasks.jacocoTestReport {
 }
 
 /** All checks */
-tasks.named("check") {
-    dependsOn("spotlessCheck", "spotbugsMain", "spotbugsTest")
-}
+//tasks.named("check") {
+//    dependsOn("spotlessCheck", "spotbugsMain", "spotbugsTest")
+//}
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
+}
+
+// checking coverage threshold: fail, if < 50% by lines
+val jacocoCoverage by tasks.register<JacocoCoverageVerification>("jacocoCoverage") {
+    dependsOn(tasks.test)
+
+    // Берём все .exec/.ec, включая твой jacoco-it.exec
+    executionData.setFrom(
+        fileTree(layout.buildDirectory.dir("jacoco")) {
+            include("**/*.exec", "**/*.ec")
+        }
+    )
+    classDirectories.setFrom(files(sourceSets.main.get().output))
+    sourceDirectories.setFrom(files(sourceSets.main.get().allSource.srcDirs))
+
+    violationRules {
+        rule {
+            // we can change counter to INSTRUCTION/BRANCH if neeeded
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = BigDecimal("0.50")
+            }
+        }
+    }
+}
+
+// all checks,  report and verification
+tasks.named("check") {
+    dependsOn(
+        "spotlessCheck",
+        "spotbugsMain",
+        "spotbugsTest",
+        tasks.jacocoTestReport, //compile Jococo report
+        jacocoCoverage          // fail, if coverage is less than < 50% by lines
+    )
 }

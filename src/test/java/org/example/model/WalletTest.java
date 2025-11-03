@@ -6,6 +6,24 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Unit tests for the Wallet model class.
+ *
+ * <p>Tests validate core Wallet functionality including:
+ *
+ * <ul>
+ *   <li><b>Transaction management:</b> Adding income and expense transactions
+ *   <li><b>Balance calculation:</b> Computed as total income minus total expenses
+ *   <li><b>Category aggregation:</b> Grouping expenses and incomes by title (category)
+ *   <li><b>Budget tracking:</b> Setting budgets and monitoring spending per category
+ * </ul>
+ *
+ * <p>The Wallet class maintains a list of transactions and provides methods to calculate totals,
+ * balance, and category-wise breakdowns for both income and expenses.
+ *
+ * @see org.example.model.Wallet
+ * @see org.example.model.Transaction
+ */
 public class WalletTest {
 
   @Test

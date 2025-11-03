@@ -10,8 +10,22 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for ConsoleInput methods. Uses explicit UTF-8 encoding to avoid SpotBugs
- * DM_DEFAULT_ENCODING warnings.
+ * Unit tests for ConsoleInput utility methods.
+ *
+ * <p>Validates input parsing and validation for strings, integers, doubles, and logins. Tests
+ * verify proper handling of:
+ *
+ * <ul>
+ *   <li>Whitespace trimming and empty input rejection
+ *   <li>Invalid input skipping (non-numeric, invalid format)
+ *   <li>Decimal separator support (both dot and comma)
+ *   <li>Login format validation (alphanumeric with constraints)
+ * </ul>
+ *
+ * <p>Uses explicit UTF-8 encoding to ensure platform-independent behavior and avoid SpotBugs
+ * warnings.
+ *
+ * @see org.example.cli.ConsoleInput
  */
 public class ConsoleInputTest {
 

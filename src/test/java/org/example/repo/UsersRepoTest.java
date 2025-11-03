@@ -8,6 +8,30 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Unit tests for the UsersRepo repository class.
+ *
+ * <p>Tests validate core repository functionality including:
+ *
+ * <ul>
+ *   <li><b>User registration:</b> Login normalization, validation, and deduplication
+ *   <li><b>Authentication:</b> Password verification and failed login attempts
+ *   <li><b>Money transfers:</b> Inter-user transfers with proper transaction recording
+ *   <li><b>User deletion:</b> Simple deletion and password-protected deletion
+ *   <li><b>Role management:</b> Adding and removing ADMIN roles with proper authorization
+ *   <li><b>Error handling:</b> Validation of custom exceptions (Invalid, NotFound, Conflict,
+ *       Forbidden)
+ * </ul>
+ *
+ * <p>Login normalization ensures case-insensitive matching and whitespace trimming. Login
+ * validation enforces format: 3-32 characters, starts with letter, alphanumeric with ._- allowed.
+ *
+ * <p>Tests use a fresh UsersRepo instance for each test via {@code @BeforeEach} to ensure
+ * isolation.
+ *
+ * @see org.example.repo.UsersRepo
+ * @see org.example.repo.RepoExceptions
+ */
 public class UsersRepoTest {
 
   private UsersRepo repo;
