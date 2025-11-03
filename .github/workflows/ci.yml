@@ -24,41 +24,21 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      # 1) Сначала собираем JAR, чтобы он гарантированно был даже если дальше чек уронит билд
-      - name: Assemble JAR (pre-build)
-        run: ./gradlew clean assemble --no-daemon --stacktrace
+      # ЕДИНСТВЕННЫЙ запуск Gradle: clean + build (включает check, jacoco, spotbugs и т.д.)
+      - name: Build (tests + coverage gate)
+        run: ./gradlew clean build --no-daemon --stacktrace
 
-      # 2) Полный build: включает check; а check у тебя зависит от jacocoTestReport и jacocoCoverage
-      - name: Build & Checks (tests + coverage gate)
-        run: ./gradlew build --no-daemon --stacktrace
-
-      # 3) Публикуем JAR — он уже собран на шаге assemble
+      # JAR — только если сборка зелёная
       - name: Upload build artifacts (JAR)
-        if: always()  # поменяй на success() если нужно только на "зелёной" сборке
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: myfinanceapp-${{ github.ref_name }}-${{ github.run_number }}
-          path: |
-            **/build/libs/*.jar
+          path: '**/build/libs/*.jar'
           if-no-files-found: warn
           retention-days: 7
 
-      # 4) SpotBugs: если у тебя эти задачи уже подвешены на check — можно удалить этот шаг
-      - name: SpotBugs (main & test)
-        run: ./gradlew spotbugsMain spotbugsTest --no-daemon
-
-      - name: Upload SpotBugs reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: spotbugs-reports
-          path: |
-            build/reports/spotbugs/main.html
-            build/reports/spotbugs/test.html
-          if-no-files-found: ignore
-          retention-days: 7
-
-      # 5) Тестовые и coverage отчёты — всегда прикрепляем
+      # Отчёты всегда прикрепляем, даже если build упал
       - name: Upload JUnit test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -75,6 +55,17 @@ jobs:
           name: jacoco-html
           path: build/reports/jacoco/test/html
           if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload SpotBugs reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spotbugs-reports
+          path: |
+            build/reports/spotbugs/main.html
+            build/reports/spotbugs/test.html
+          if-no-files-found: ignore
           retention-days: 7
 
       - name: Upload Checkstyle reports
