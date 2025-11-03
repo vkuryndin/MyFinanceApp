@@ -90,10 +90,10 @@ jobs:
 
       # ⬇⬇⬇ ДОБАВЛЕНО: генерация SVG-бейджей покрытия из XML JaCoCo
       - name: Generate JaCoCo badges
-        if: github.event_name != 'pull_request'   # на PR не коммитим в репо
-        uses: cicirello/jacoco-badge-generator@v4
+        if: github.event_name != 'pull_request'
+        uses: cicirello/jacoco-badge-generator@v2.12.1
         with:
-          jacoco-xml-file: build/reports/jacoco/test/jacocoTestReport.xml
+          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
           output: badges/jacoco.svg
           generate-branches-badge: true
           branches-output: badges/branches.svg
