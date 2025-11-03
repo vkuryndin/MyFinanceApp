@@ -167,17 +167,36 @@ public class Main {
         case 6:
           ConsoleUtils.handleTransfer(scanner, currentUser, USERS);
           break;
+
+          // ===== НОВОЕ =====
         case 7:
+          // Расширенная статистика: периоды + несколько категорий (критерий 11 = 2/2)
+          ConsoleUtils.handleAdvancedStatistics(scanner, currentUser);
+          break;
+        case 8:
+          // Обновить лимит бюджета (критерий 12)
+          ConsoleUtils.handleUpdateBudgetLimit(scanner, currentUser);
+          break;
+        case 9:
+          // Удалить бюджет (критерий 12)
+          ConsoleUtils.handleRemoveBudget(scanner, currentUser);
+          break;
+        case 10:
+          // Переименовать категорию бюджета (критерий 12)
+          ConsoleUtils.handleRenameCategory(scanner, currentUser);
+          break;
+          // =================
+        case 11:
           if (ConsoleUtils.handleDeleteYourUserAccount(scanner, currentUser, USERS)) {
             currentUser = null;
             isloggedOut = true;
           }
           break;
-        case 8:
+        case 12:
           System.out.println("You are going to return to main menu");
           return;
         default:
-          System.out.println("Invalid option, Choose  1-8");
+          System.out.println("Invalid option, Choose  1-12");
           System.out.println("> ");
           break;
       }
@@ -206,7 +225,7 @@ public class Main {
           break;
         case 4:
           System.out.println("You are going to delete all users except super admin ");
-          if (ConsoleUtils.confirmAction(scanner)) USERS.deleteAllUsers();
+          if (ConsoleUtils.confirmAction(scanner, "deleting all users")) USERS.deleteAllUsers();
           break;
         case 5:
           ConsoleUtils.handleAddOrdinaryAdminAccount(scanner, currentUser, USERS, allUsers);

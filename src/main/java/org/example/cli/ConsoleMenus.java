@@ -16,8 +16,12 @@ public class ConsoleMenus {
     System.out.println("4. Add budget");
     System.out.println("5. View statistics");
     System.out.println("6. Transfer money to other user");
-    System.out.println("7. Delete my user account");
-    System.out.println("8. Return to the previous menu");
+    System.out.println("7. Advanced statistics (period / categories)");
+    System.out.println("8. Update budget limit");
+    System.out.println("9. Remove budget");
+    System.out.println("10. Rename budget category");
+    System.out.println("11. Delete my user account");
+    System.out.println("12. Return to the previous menu");
     System.out.println("> ");
   }
 

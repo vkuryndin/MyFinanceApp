@@ -186,14 +186,16 @@ class MainTest {
                 "1", // Main actions
                 "2",
                 "4",
-                "coffee", // expense #1: 4.0, "coffee"
+                "coffee",
+                "", // <-- дата (пусто = today)
                 "2",
                 "1",
-                "taxi", // expense #2: 1.0, "taxi"
+                "taxi",
+                "", // <-- дата (пусто = today)
                 "3", // View wallet
 
                 // Return and exit
-                "8", // Return to previous menu (from Main Actions)
+                "12", // Return to previous menu (from Main Actions)
                 "4" // Exit (from Actions menu)
                 )
             + "\n";
@@ -272,14 +274,14 @@ class MainTest {
    * Go to Main Actions and immediately return back, then Exit. Covers 'Return to previous menu'
    * branch in main actions.
    */
-  @DisplayName("Enter Main Actions and return to cover 'Return to previous menu' branch")
   @Test
+  @DisplayName("Enter Main Actions and return to cover 'Return to previous menu' branch")
   void mainActions_return_immediately_then_exit() throws Exception {
     Path wd = newWorkDir();
     String script =
         String.join(
                 "\n",
-                "1", // Log in
+                "1",
                 "adminuser",
                 "P@ssw0rd!",
                 "P@ssw0rd!",
@@ -292,7 +294,7 @@ class MainTest {
                 "100",
                 "0",
                 "1", // Actions → Main actions
-                "8", // Return to previous menu
+                "12", // <-- теперь Return to previous menu
                 "4" // Exit (из Actions)
                 )
             + "\n";
@@ -371,10 +373,10 @@ class MainTest {
                 "1", // Main actions
                 "1",
                 "150",
-                "salary", // Add income: amount -> title (у тебя расход идёт amount→title; для
-                // дохода держим тот же порядок)
+                "salary",
+                "", // <-- дата (пусто = today)
                 "5", // View statistics
-                "8", // back to Actions
+                "12", // back to Actions
                 "4" // Exit
                 )
             + "\n";
@@ -413,12 +415,11 @@ class MainTest {
                 "100",
                 "0",
                 "1", // Main actions
-                "0", // invalid in main actions (если 1..8)
-                "8", // back to Actions
-                "2", // Administrator actions (откроем меню админа)
-                "0", // сразу некорректный ввод внутри админ-меню (покрыть default-ветку)
-                "8", // попытка вернуться назад из админ-меню (если у тебя “Return to previous menu”
-                // — номер 8, будет покрыт)
+                "0", // invalid in main actions
+                "12", // <-- Return to previous menu (заменили 8)
+                "2", // Administrator actions
+                "0", // invalid inside admin menu
+                "8", // <-- Return to previous menu (если у тебя в админ-меню 1–4)
                 "4" // Exit из Actions
                 )
             + "\n";

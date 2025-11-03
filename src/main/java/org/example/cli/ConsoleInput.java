@@ -1,9 +1,16 @@
 package org.example.cli;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.LinkedHashSet;
 import java.util.Scanner;
+import java.util.Set;
 
 public class ConsoleInput {
   private ConsoleInput() {}
+
+  private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
   // reading string safely from the console
   // this is used for entering text to the app
@@ -52,7 +59,7 @@ public class ConsoleInput {
       try {
         double v = Double.parseDouble(s.replace(',', '.'));
         if (v > 0 && !Double.isInfinite(v) && !Double.isNaN(v)) return v;
-
+        System.out.println("Please enter a positive number (> 0): ");
       } catch (NumberFormatException ignored) {
         System.out.println("Please enter a valid number: ");
       }
@@ -96,5 +103,64 @@ public class ConsoleInput {
           "Login must be between 3 and 32 characters long and contain only "
               + "letters, digits, dots, dashes and underscores. Try again. ");
     }
+  }
+
+  // NEW: допускает 0 (для лимитов бюджета)
+  public static double readNonNegativeDouble(Scanner scanner, String prompt) {
+    while (true) {
+      System.out.println(prompt);
+      System.out.println("> ");
+      String s = scanner.nextLine().trim();
+      try {
+        double v = Double.parseDouble(s.replace(',', '.'));
+        if (v >= 0 && !Double.isInfinite(v) && !Double.isNaN(v)) return v;
+        System.out.println("Please enter a non-negative number (>= 0).");
+      } catch (NumberFormatException ignored) {
+        System.out.println("Please enter a valid number: ");
+      }
+    }
+  }
+
+  // NEW: дата ISO или сегодня по умолчанию
+  public static String readDateIsoOrToday(Scanner scanner, String prompt) {
+    System.out.println(prompt);
+    System.out.println("> ");
+    String s = scanner.nextLine().trim();
+    if (s.isEmpty()) return LocalDate.now().format(ISO);
+    try {
+      LocalDate.parse(s, ISO);
+      return s;
+    } catch (DateTimeParseException e) {
+      System.out.println("Invalid date format, expected yyyy-MM-dd. Using today.");
+      return LocalDate.now().format(ISO);
+    }
+  }
+
+  public static LocalDate readDateOrNull(Scanner scanner, String prompt) {
+    System.out.println(prompt);
+    System.out.println("> ");
+    String s = scanner.nextLine().trim();
+    if (s.isEmpty()) return null;
+    try {
+      return LocalDate.parse(s, ISO);
+    } catch (DateTimeParseException e) {
+      System.out.println("Invalid date format. Expected yyyy-MM-dd. Try again.");
+      return readDateOrNull(scanner, prompt);
+    }
+  }
+
+  // NEW: парсинг множества категорий "cat1, cat2, cat3"
+  public static Set<String> readCategoriesSet(Scanner scanner, String prompt) {
+    System.out.println(prompt);
+    System.out.println("> ");
+    String line = scanner.nextLine();
+    if (line == null || line.trim().isEmpty()) return java.util.Collections.emptySet();
+    String[] parts = line.split(",");
+    Set<String> set = new LinkedHashSet<>();
+    for (String p : parts) {
+      String v = p.trim();
+      if (!v.isEmpty()) set.add(v);
+    }
+    return set;
   }
 }

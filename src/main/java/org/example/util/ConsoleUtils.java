@@ -1,7 +1,9 @@
 package org.example.util;
 
-import java.util.List;
-import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 import org.example.cli.ConsoleInput;
 import org.example.model.Transaction;
 import org.example.model.User;
@@ -10,6 +12,53 @@ import org.example.repo.UsersRepo;
 
 public class ConsoleUtils {
   private ConsoleUtils() {}
+
+  // ====== ДОБАВЛЕНО: формат даты и утилиты для ввода ======
+  private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
+
+  private static LocalDate askDate(Scanner scanner, String prompt) {
+    System.out.println(prompt);
+    System.out.print("> ");
+    String s = scanner.nextLine().trim();
+    if (s.isEmpty()) return null; // без границы
+    try {
+      return LocalDate.parse(s, ISO);
+    } catch (DateTimeParseException e) {
+      System.out.println("Invalid date format. Expected yyyy-MM-dd. Try again.");
+      return askDate(scanner, prompt);
+    }
+  }
+
+  private static String askDateIsoOrToday(Scanner scanner, String prompt) {
+    System.out.println(prompt);
+    System.out.print("> ");
+    String s = scanner.nextLine().trim();
+    if (s.isEmpty()) return LocalDate.now().format(ISO);
+    try {
+      // проверим, что формат корректный
+      LocalDate.parse(s, ISO);
+      return s;
+    } catch (DateTimeParseException e) {
+      System.out.println("Invalid date format. Expected yyyy-MM-dd. Using today.");
+      return LocalDate.now().format(ISO);
+    }
+  }
+
+  private static Set<String> askCategories(Scanner scanner, String prompt) {
+    System.out.println(prompt);
+    System.out.print("> ");
+    String line = scanner.nextLine();
+    if (line == null || line.trim().isEmpty()) return Collections.emptySet();
+    String[] parts = line.split(",");
+    Set<String> set = new LinkedHashSet<>();
+    for (String p : parts) {
+      String v = p.trim();
+      if (!v.isEmpty()) set.add(v);
+    }
+    return set;
+  }
+
+  // my older methods
 
   public static boolean checkLogonStatus(User currentUser) {
     if (!(currentUser == null)) {
@@ -69,35 +118,64 @@ public class ConsoleUtils {
     // System.out.println("Spent in: " + cat + ": " + spent + ", remaining: " + rem);
   }
 
+  // ====== ИЗМЕНЕНО: добавлен ввод даты и создание Transaction с датой ======
+
   // adding income
   public static void handleAddIncome(Scanner scanner, User currentUser) {
     System.out.println("You are going to add income");
-    double incomeAmount = ConsoleInput.readDoubleSafe(scanner, "Enter income amount");
-    String incomeTitle = ConsoleInput.readStringSafe(scanner, "Enter income title");
-    currentUser.wallet.addTransaction(incomeAmount, incomeTitle, Transaction.Type.INCOME);
-    System.out.println("Income added successfully: " + incomeAmount + " (" + incomeTitle + ")");
+    double amount = ConsoleInput.readDoubleSafe(scanner, "Enter income amount");
+    String title = ConsoleInput.readStringSafe(scanner, "Enter income title");
+    String iso =
+        ConsoleInput.readDateIsoOrToday(scanner, "Enter date (yyyy-MM-dd, empty = today):");
+
+    // Если в Wallet есть addTransaction(Transaction tx) — используем его.
+    // Иначе можно вернуть на старый вызов currentUser.wallet.addTransaction(amount, title,
+    // Type.INCOME)
+    Transaction tx = new Transaction(amount, title, Transaction.Type.INCOME, iso);
+    currentUser.wallet.addTransaction(tx);
+
+    System.out.println("Income added successfully: " + amount + " (" + title + ") on " + iso);
   }
 
   // adding expense
   public static void handleAddExpense(Scanner scanner, User currentUser) {
     System.out.println("You are going to add expense");
-    double expenseAmount = ConsoleInput.readDoubleSafe(scanner, "Enter expense amount");
-    String expenseTitle = ConsoleInput.readStringSafe(scanner, "Enter expense title:");
-    currentUser.wallet.addTransaction(expenseAmount, expenseTitle, Transaction.Type.EXPENSE);
-    System.out.println("Expense added successfully: " + expenseAmount + " (" + expenseTitle + ")");
-    if (currentUser.wallet.getBudgets().containsKey(expenseTitle)) {
-      double rem = currentUser.wallet.getRemainingBudget(expenseTitle);
-      System.out.println("Remaining budget for " + expenseTitle + ": " + rem);
-      if (rem < 0) {
-        System.out.println("You have exceeded your budget for " + expenseTitle + " by " + (-rem));
-      }
+    double amount = ConsoleInput.readDoubleSafe(scanner, "Enter expense amount");
+    String title = ConsoleInput.readStringSafe(scanner, "Enter expense title:");
+    String iso =
+        ConsoleInput.readDateIsoOrToday(scanner, "Enter date (yyyy-MM-dd, empty = today):");
+
+    Transaction tx = new Transaction(amount, title, Transaction.Type.EXPENSE, iso);
+    currentUser.wallet.addTransaction(tx);
+
+    System.out.println("Expense added successfully: " + amount + " (" + title + ") on " + iso);
+    if (currentUser.wallet.getBudgets().containsKey(title)) {
+      double spent = currentUser.wallet.getSpentByCategory(title);
+      double rem = currentUser.wallet.getRemainingBudget(title);
+      System.out.println("Remaining budget for " + title + ": " + rem);
+    }
+    for (String a : currentUser.wallet.getBudgetAlerts()) {
+      System.out.println("! " + a);
     }
   }
 
   // viewing wallet, transactions, budgets, alerts
   public static void handleViewWallet(User currentUser) {
+    if (currentUser == null) {
+      System.out.println("Status: You are not logged in");
+      return;
+    }
+
     System.out.println("You are going to view wallet");
-    System.out.println("Balance: " + currentUser.wallet.getBalance());
+
+    // баланс + ранние предупреждения по кошельку — СРАЗУ
+    double bal = currentUser.wallet.getBalance();
+    System.out.println("Balance: " + bal);
+    if (bal == 0.0) {
+      System.out.println("! Your wallet balance is zero.");
+    } else if (bal < 0) {
+      System.out.println("! Your wallet is negative!");
+    }
 
     // viewing transactions
     var txs = currentUser.wallet.getTransactions();
@@ -109,6 +187,7 @@ public class ConsoleUtils {
         System.out.println("- " + t);
       }
     }
+
     // viewing budgets
     var budgets = currentUser.wallet.getBudgets();
     if (budgets.isEmpty()) {
@@ -123,8 +202,11 @@ public class ConsoleUtils {
         System.out.println("- " + cat + ": " + limit + ", spent: " + spent + ", remaining: " + rem);
       }
     }
-    // viewing alerts
-    var alerts = currentUser.wallet.getbudgetAlerts();
+
+    // viewing alerts (пороговые уведомления по бюджетам)
+    // ВАЖНО: имя метода — getBudgetAlerts() (CamelCase). Если у тебя ещё старое имя, замени на
+    // него.
+    var alerts = currentUser.wallet.getBudgetAlerts();
     for (String a : alerts) {
       System.out.println("! " + a);
     }
@@ -134,7 +216,7 @@ public class ConsoleUtils {
   public static void handleAddBudget(Scanner scanner, User currentUser) {
     System.out.println("You are going to add budget for your categories");
     String cat = ConsoleInput.readStringSafe(scanner, "Enter category name: ");
-    double limit = ConsoleInput.readDoubleSafe(scanner, "Enter budget limit: ");
+    double limit = ConsoleInput.readNonNegativeDouble(scanner, "Enter budget limit (>= 0):");
     currentUser.wallet.setBudget(cat, limit);
     System.out.println("Budget added successfully: " + limit + " (" + cat + ")");
 
@@ -172,7 +254,7 @@ public class ConsoleUtils {
       System.out.println("You are a super admin. You cannot delete this account");
       return false;
     }
-    if (!ConsoleUtils.confirmAction(scanner)) return false;
+    if (!ConsoleUtils.confirmAction(scanner, "")) return false;
     else {
       String pass =
           ConsoleInput.readStringSafe(scanner, "Enter your password to confirm deletion: ");
@@ -294,7 +376,7 @@ public class ConsoleUtils {
 
   public static boolean handleRemoveOrdinaryAdminAccount(Scanner scanner, UsersRepo USERS) {
     System.out.println("You are now going to remove administrator account...");
-    if (!ConsoleUtils.confirmAction(scanner)) return false;
+    if (!ConsoleUtils.confirmAction(scanner, "removing ordinary admin account")) return false;
     String removeAdminLogin =
         ConsoleInput.readStringSafe(
             scanner, "Enter login of the ordinary administrator to remove: ");
@@ -317,12 +399,174 @@ public class ConsoleUtils {
     }
   }
 
-  public static boolean confirmAction(Scanner scanner) {
-    String sure = ConsoleInput.readStringSafe(scanner, "Type YES to confirm account deletion: ");
+  public static boolean confirmAction(Scanner scanner, String what) {
+    String sure = ConsoleInput.readStringSafe(scanner, "Type YES to confirm: " + what);
     if (!"YES".equalsIgnoreCase(sure)) {
       System.out.println("Wrong input, try again.");
       return false;
     }
     return true;
+  }
+
+  // ====== ДОБАВЛЕНО: Расширенная статистика (критерий 11 = 2/2) ======
+
+  public static void handleAdvancedStatistics(Scanner scanner, User u) {
+    System.out.println("=== Advanced statistics (period/categories) ===");
+
+    LocalDate from =
+        ConsoleInput.readDateOrNull(
+            scanner, "Enter FROM date (yyyy-MM-dd) or empty for no lower bound:");
+    ;
+    LocalDate to =
+        ConsoleInput.readDateOrNull(
+            scanner, "Enter TO date (yyyy-MM-dd) or empty for no upper bound:");
+    if (from != null && to != null && to.isBefore(from)) {
+      System.out.println("TO is before FROM — swapping bounds.");
+      LocalDate tmp = from;
+      from = to;
+      to = tmp;
+    }
+
+    Set<String> categories =
+        ConsoleInput.readCategoriesSet(scanner, "Enter categories comma-separated (empty = all):");
+
+    System.out.println();
+    System.out.println("— Expenses —");
+    double exp = u.wallet.sumExpense(from, to, categories);
+    if (exp == 0.0) {
+      System.out.println("No expense data for selected period/categories.");
+    } else {
+      var byCat = u.wallet.expensesByCategory(from, to, categories);
+      printMap(byCat);
+      System.out.println("Total expenses: " + exp);
+    }
+
+    System.out.println();
+    System.out.println("— Incomes —");
+    double inc = u.wallet.sumIncome(from, to, categories);
+    if (inc == 0.0) {
+      System.out.println("No income data for selected period/categories.");
+    } else {
+      var byCat = u.wallet.incomesByCategory(from, to, categories);
+      printMap(byCat);
+      System.out.println("Total incomes: " + inc);
+    }
+
+    System.out.println();
+    System.out.println("— Filtered transactions —");
+    List<Transaction> list = u.wallet.findTransactions(from, to, categories, null);
+    if (list.isEmpty()) {
+      System.out.println("No transactions for selected conditions.");
+    } else {
+      for (Transaction t : list) {
+        System.out.println(t.getDateIso() + " | " + t.type + " | " + t.title + " | " + t.amount);
+      }
+    }
+
+    System.out.println("=== Done ===");
+  }
+
+  private static void printMap(Map<String, Double> map) {
+    if (map == null || map.isEmpty()) {
+      System.out.println("(empty)");
+      return;
+    }
+    for (var e : map.entrySet()) {
+      System.out.println("  " + e.getKey() + ": " + e.getValue());
+    }
+  }
+
+  // ====== ДОБАВЛЕНО: Хендлеры для критерия 12 (редактирование бюджетов) ======
+
+  public static void handleUpdateBudgetLimit(Scanner scanner, User u) {
+    System.out.println("You are going to update a budget limit");
+
+    // СНАЧАЛА — выбрать корректную существующую категорию:
+    String cat = askExistingBudgetCategory(scanner, u);
+    if (cat == null) {
+      System.out.println("Operation cancelled.");
+      return; // пользователь ввёл CANCEL или нет категорий
+    }
+
+    // ТЕПЕРЬ — спросить новый лимит (>= 0):
+    double newLimit = ConsoleInput.readNonNegativeDouble(scanner, "Enter new limit (>= 0):");
+    boolean ok = u.wallet.updateBudgetLimit(cat, newLimit);
+    if (ok) {
+      System.out.println("Budget updated: " + cat + " -> " + newLimit);
+      double spent = u.wallet.getSpentByCategory(cat);
+      double rem = u.wallet.getRemainingBudget(cat);
+      System.out.println("Spent: " + spent + ", remaining: " + rem);
+    } else {
+      // Теоретически не должно случиться (категорию мы уже верифицировали),
+      // но оставим защитное сообщение.
+      System.out.println("Category not found in budgets.");
+    }
+  }
+
+  public static void handleRemoveBudget(Scanner scanner, User u) {
+    System.out.println("You are going to remove a budget");
+    String cat = askExistingBudgetCategory(scanner, u);
+    if (cat == null) {
+      System.out.println("Operation cancelled.");
+      return;
+    }
+    boolean ok = u.wallet.removeBudget(cat);
+    System.out.println(ok ? "Budget removed: " + cat : "Category not found in budgets.");
+  }
+
+  public static void handleRenameCategory(Scanner scanner, User u) {
+    System.out.println("You are going to rename a budget category");
+    String oldName = askExistingBudgetCategory(scanner, u);
+    if (oldName == null) {
+      System.out.println("Operation cancelled.");
+      return;
+    }
+
+    String newName = ConsoleInput.readStringSafe(scanner, "Enter new category name:");
+    if (oldName.equals(newName)) {
+      System.out.println("Old and new names are the same.");
+      return;
+    }
+    boolean ok = u.wallet.renameCategory(oldName, newName);
+    if (ok) {
+      System.out.println("Category renamed: " + oldName + " -> " + newName);
+      var budgets = u.wallet.getBudgets();
+      if (budgets.containsKey(newName)) {
+        double limit = budgets.get(newName);
+        double spent = u.wallet.getSpentByCategory(newName);
+        double rem = u.wallet.getRemainingBudget(newName);
+        System.out.println(
+            "- " + newName + ": " + limit + ", spent: " + spent + ", remaining: " + rem);
+      }
+    } else {
+      System.out.println("Nothing changed. Category not found or invalid names.");
+    }
+  }
+
+  private static String askExistingBudgetCategory(Scanner scanner, User u) {
+    var budgets = u.wallet.getBudgets(); // Map<String, Double>
+    if (budgets.isEmpty()) {
+      System.out.println("There are no budget categories yet.");
+      return null;
+    }
+
+    System.out.println("Existing budget categories:");
+    for (var e : budgets.entrySet()) {
+      System.out.println("  - " + e.getKey() + " (limit: " + e.getValue() + ")");
+    }
+    System.out.println("Type a category name exactly as above.");
+    System.out.println("Or type CANCEL to abort.");
+    System.out.print("> ");
+
+    while (true) {
+      String cat = scanner.nextLine().trim();
+      if (cat.equalsIgnoreCase("CANCEL")) return null;
+      if (budgets.containsKey(cat)) return cat;
+
+      // не нашли — повторно показываем список и просим ещё раз
+      System.out.println(
+          "Category not found. Please choose one from the list above or type CANCEL.");
+      System.out.print("> ");
+    }
   }
 }
