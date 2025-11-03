@@ -28,12 +28,21 @@ jobs:
       - name: Build (tests + coverage gate)
         run: ./gradlew clean build --no-daemon --stacktrace
 
+      # computing safe name for artifact
+      - name: Compute safe artifact name
+        id: name
+        shell: bash
+        run: |
+         ref="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+         ref="${ref//\//-}"   # change all / to -
+         echo "safe_name=myfinanceapp-${ref}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
       # JAR — только если сборка зелёная
       - name: Upload build artifacts (JAR)
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: myfinanceapp-${{ replace(github.head_ref != '' && github.head_ref || github.ref_name, '/', '-') }}-${{ github.run_number }}
+          name: ${{ steps.name.outputs.safe_name }}
           path: '**/build/libs/*.jar'
           if-no-files-found: warn
           retention-days: 7
