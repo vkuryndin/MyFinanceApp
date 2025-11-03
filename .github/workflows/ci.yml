@@ -1,45 +1,42 @@
 name: CI
-
 on:
   push:
   pull_request:
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
 
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      # ГЛАВНЫЙ шаг: check зависит от jacocoTestReport и jacocoCoverage (порог 50%)
-      - name: Build & Checks (with coverage gate)
-        run: ./gradlew clean check --no-daemon --stacktrace
+      # 1) Сначала соберём JAR, чтобы он гарантированно был даже если чек упадёт позже
+      - name: Assemble JAR
+        run: ./gradlew clean assemble --no-daemon --stacktrace
 
-      # JAR публикуем только если всё зелёное
+      # 2) Теперь полный build (включает check; у тебя check завязан на jacocoCoverage)
+      - name: Build & Checks (tests + coverage gate)
+        run: ./gradlew build --no-daemon --stacktrace
+
+      # 3) Публикуем JAR — теперь он точно есть
       - name: Upload build artifacts (JAR)
-        if: success()
+        if: success()   # если хочешь только на зелёной — поменяй на success()
         uses: actions/upload-artifact@v4
         with:
           name: myfinanceapp-${{ github.ref_name }}-${{ github.run_number }}
-          path: | 
-           build/libs/*.jar
+          path: |
+            **/build/libs/*.jar
           if-no-files-found: warn
           retention-days: 7
 
-      # SpotBugs отдельно (можно убрать, если уже завязан на check)
       - name: SpotBugs (main & test)
         run: ./gradlew spotbugsMain spotbugsTest --no-daemon
 
@@ -54,7 +51,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      # --- Отчёты тестов и покрытия, всегда прикрепляем ---
+      # Отчёты тестов и покрытия всегда прикладываем
       - name: Upload JUnit test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -73,7 +70,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      # Если используешь Checkstyle — тоже приложим
       - name: Upload Checkstyle reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -82,3 +78,10 @@ jobs:
           path: build/reports/checkstyle
           if-no-files-found: ignore
           retention-days: 7
+
+      # (необязательный шаг для быстрой диагностики путей)
+      - name: List build outputs (debug)
+        if: always()
+        run: |
+          echo "=== ls -R build ==="
+          ls -R build || true
