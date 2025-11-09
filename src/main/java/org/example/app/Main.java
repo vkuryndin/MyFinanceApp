@@ -28,8 +28,8 @@ public class Main {
 
   public static void main(String[] args) {
     // showFirstMenu();
-      System.out.println("==========================");
-      USERS = StorageJson.loadOrNew(DATA_FILE);
+    System.out.println("==========================");
+    USERS = StorageJson.loadOrNew(DATA_FILE);
 
     // changing the welcome string whether the previously saved data exists
     if (USERS.getIsPreviousDataExists()) {
@@ -76,7 +76,7 @@ public class Main {
           case 2:
             System.out.println("View docs");
             // TO FIX::write the documentation of the program
-              runDocumentation();
+            runDocumentation();
             break;
           case 3:
             System.out.println("You have exited");
@@ -265,42 +265,43 @@ public class Main {
   }
 
   private static void runOrdinaryAdminMenu() {
-      while (true) {
-          ConsoleMenus.showOrdinaryAdminMenu();
-          int option = ConsoleInput.readIntSafe(scanner);
-          switch (option) {
-              case 1:
-                  System.out.println("You are going to view all users");
-                  USERS.listAllUsers();
-                  break;
-              case 2:
-                  System.out.println("You are going to view statistics for all users");
-                  List<User> allUsers = USERS.listAll();
-                  for (User u : allUsers) {
-                      System.out.println("Displaying statistics for user: " + u.login);
-                      ConsoleUtils.handleViewStatistics(u);
-                  }
-                  break;
-              case 3:
-                  if (ConsoleUtils.confirmAction(scanner, "deleting the selected user account")) {
-                      ConsoleUtils.handleDeleteSelectedUserAccount(scanner, currentUser, USERS);
-                  }
-                  break;
-              case 4:
-                  System.out.println("You are going to return to main menu");
-                  return;
-              default:
-                  System.out.println("Invalid option, Choose  1-4");
+    while (true) {
+      ConsoleMenus.showOrdinaryAdminMenu();
+      int option = ConsoleInput.readIntSafe(scanner);
+      switch (option) {
+        case 1:
+          System.out.println("You are going to view all users");
+          USERS.listAllUsers();
+          break;
+        case 2:
+          System.out.println("You are going to view statistics for all users");
+          List<User> allUsers = USERS.listAll();
+          for (User u : allUsers) {
+            System.out.println("Displaying statistics for user: " + u.login);
+            ConsoleUtils.handleViewStatistics(u);
           }
+          break;
+        case 3:
+          if (ConsoleUtils.confirmAction(scanner, "deleting the selected user account")) {
+            ConsoleUtils.handleDeleteSelectedUserAccount(scanner, currentUser, USERS);
+          }
+          break;
+        case 4:
+          System.out.println("You are going to return to main menu");
+          return;
+        default:
+          System.out.println("Invalid option, Choose  1-4");
       }
+    }
   }
-  private static void runDocumentation(){
-      while (true) {
-          ConsoleMenus.showDocumenation();
-          int option = ConsoleInput.readIntSafe(scanner);
-          if (option == 1) {
-              return;
-          }
+
+  private static void runDocumentation() {
+    while (true) {
+      ConsoleMenus.showDocumenation();
+      int option = ConsoleInput.readIntSafe(scanner);
+      if (option == 1) {
+        return;
       }
+    }
   }
 }

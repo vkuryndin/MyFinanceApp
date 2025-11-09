@@ -1,8 +1,5 @@
 package org.example.model;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Set;
 import org.mindrot.jbcrypt.BCrypt; // importing special crypto library to deal with password hashing
 
@@ -73,7 +70,7 @@ public final class User {
   }
 
   // using hash function to hash password, previous implementation - not used now.
-  //private static String sha256(String s) {
+  // private static String sha256(String s) {
   //  try {
   //    MessageDigest md = MessageDigest.getInstance("SHA-256");
   //    byte[] d = md.digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -81,9 +78,9 @@ public final class User {
   //  } catch (NoSuchAlgorithmException e) {
   //    throw new RuntimeException(e);
   //  }
-  //}
+  // }
 
-    //check passwword functions
+  // check passwword functions
   public boolean checkPassword(String rawPassword) {
     // System.out.println("Checking password for user " + this.login);
     // System.out.println("Raw password: " + rawPassword);
@@ -118,7 +115,7 @@ public final class User {
     roles.remove(r);
   }
 
-  //fixing spotbugs issue with getRoles  - EL_EXSPOSE_REP
+  // fixing spotbugs issue with getRoles  - EL_EXSPOSE_REP
   public Set<Role> getRoles() {
     return Set.copyOf(roles);
   }

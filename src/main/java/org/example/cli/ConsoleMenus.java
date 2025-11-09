@@ -71,35 +71,46 @@ public class ConsoleMenus {
     System.out.println("4. Exit");
     System.out.println("> ");
   }
+
   public static void showDocumenation() {
-      System.out.println("==========================");
-      System.out.println("MyFinanceApp Quick Start Guide");
-      System.out.println("Welcome to MyFinanceApp Quick Start Guide.");
-      System.out.println("The app is a simple multi-user application allowing you and your friends to manage your personal finances");
-      System.out.println("The first user to log in to the program becomes a super admin, who can manage other admins,  ");
-      System.out.println("view advanced statistics, manage users and storage data");
-      System.out.println("To create a new user just log in with the nonexistent login, new user will be created automatically");
-      System.out.println(" ");
-      System.out.println("As a user you can add income, add expense, set a bugget for expense categories, ");
-      System.out.println("update limits for budget categories, remove or rename your budget categories");
-      System.out.println(" ");
-      System.out.println("You can also transfer your money to another user registered in the application.");
-      System.out.println(" ");
-      System.out.println("If you no longer want to use the app you can delete your user account");
-      System.out.println("(pay attention, that the first user (e.g. super account) cannot be deleted)");
-      System.out.println(" ");
-      System.out.println("You can also use the Export/Import wallet feature. With this feature you can ");
-      System.out.println("add expenses and categories (so called transactions) in a bulk by directly editing the wallet.json file ");
-      System.out.println(" ");
-      System.out.println("All users, wallets, transactions are saved to the /data/finance-data.json file");
-      System.out.println("when you exit the program");
-      System.out.println("This file is used as some kind of local database.");
-      System.out.println("If you want to start anew, simnply delete the /data/finance-data.json, the app will start with no data. ");
-      System.out.println(" ");
-      System.out.println(" ");
-      System.out.println("==========================");
-      System.out.println("Press 1 to return to the Login menu...");
-
-
+    System.out.println("==========================");
+    System.out.println("MyFinanceApp Quick Start Guide");
+    System.out.println(" ");
+    System.out.println("Welcome to MyFinanceApp Quick Start Guide.");
+    System.out.println(
+        "The app is a simple multi-user application allowing you and your friends to manage your personal finances");
+    System.out.println(
+        "The first user to log in to the program becomes a super admin, who can manage other admins,  ");
+    System.out.println("view advanced statistics, manage users and storage data");
+    System.out.println(
+        "To create a new user just log in with the nonexistent login, new user will be created automatically");
+    System.out.println(" ");
+    System.out.println(
+        "As a user you can add income, add expense, set a bugget for expense categories, ");
+    System.out.println(
+        "update limits for budget categories, remove or rename your budget categories");
+    System.out.println(" ");
+    System.out.println(
+        "You can also transfer your money to another user registered in the application.");
+    System.out.println(" ");
+    System.out.println("If you no longer want to use the app you can delete your user account");
+    System.out.println(
+        "(pay attention, that the first user (e.g. super account) cannot be deleted)");
+    System.out.println(" ");
+    System.out.println(
+        "You can also use the Export/Import wallet feature. With this feature you can ");
+    System.out.println(
+        "add expenses and categories (so called transactions) in a bulk by directly editing the wallet.json file ");
+    System.out.println(" ");
+    System.out.println(
+        "All users, wallets, transactions are saved to the /data/finance-data.json file");
+    System.out.println("when you exit the program");
+    System.out.println("This file is used as some kind of local database.");
+    System.out.println(
+        "If you want to start anew, simnply delete the /data/finance-data.json, the app will start with no data. ");
+    System.out.println(" ");
+    System.out.println(" ");
+    System.out.println("==========================");
+    System.out.println("Press 1 to return to the Login menu...");
   }
 }

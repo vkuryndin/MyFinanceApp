@@ -37,12 +37,12 @@ public final class Transaction {
         (date != null) ? ISO.format(date) : LocalDate.now().format(ISO));
   }
 
-  /** with ISO-date (generates new  GUID) */
+  /** with ISO-date (generates new GUID) */
   public Transaction(double amount, String title, Type type, String dateIso) {
     this(UUID.randomUUID().toString(), amount, title, type, dateIso);
   }
 
-  /** New  constructor: used when importing fron JSON, if GUID is present */
+  /** New constructor: used when importing fron JSON, if GUID is present */
   public Transaction(String id, double amount, String title, Type type, String dateIso) {
     if (!Double.isFinite(amount) || amount <= 0.0) {
       throw new IllegalArgumentException("amount must be a positive finite number");

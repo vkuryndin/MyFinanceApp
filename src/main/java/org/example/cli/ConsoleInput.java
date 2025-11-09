@@ -27,8 +27,8 @@ public class ConsoleInput {
     }
   }
 
-  //reading string safely, digits not allowed,
-  //will be used when entering names and surnames.
+  // reading string safely, digits not allowed,
+  // will be used when entering names and surnames.
   public static String readStringSafe(Scanner scanner, String prompt, boolean disallowDigits) {
     while (true) {
       System.out.println(prompt);
@@ -83,8 +83,8 @@ public class ConsoleInput {
     }
   }
 
-    // reading int safely from the console
-    // this is used for the menu options, without prompt
+  // reading int safely from the console
+  // this is used for the menu options, without prompt
   public static int readIntSafe(Scanner scanner) {
     while (true) {
       String s = scanner.nextLine().trim();
@@ -140,7 +140,7 @@ public class ConsoleInput {
     }
   }
 
-  //reading date with prompt
+  // reading date with prompt
   public static LocalDate readDateOrNull(Scanner scanner, String prompt) {
     System.out.println(prompt);
     System.out.println("> ");

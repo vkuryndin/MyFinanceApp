@@ -142,7 +142,8 @@ public class ConsoleMenusTest {
     String s = stdout();
     // there is a header for ordinary admin
     assertTrue(s.toLowerCase().contains("admin"), "Must look like admin menu");
-    //The check are intentiobnally softй: the existence of sewveral options and the return to previous menu option
+    // The check are intentiobnally softй: the existence of sewveral options and the return to
+    // previous menu option
     assertTrue(
         s.contains("Return to the previous menu") || s.contains("Back"),
         "Should contain return/back option");
@@ -170,15 +171,17 @@ public class ConsoleMenusTest {
         "Should contain return/back option");
   }
 
-    @Test
-    @DisplayName("Ordinary admin menu prints header and 4 options::full check")
-    void showOrdinaryAdminMenuFull_printsExpected() {
-        ConsoleMenus.showOrdinaryAdminMenu();
-        String s = stdout();
-        assertTrue(s.contains("You are now in the Administrator menu. Please select an option:"), "Header missing");
-        assertTrue(s.contains("1. View all users"), "Option 1 missing");
-        assertTrue(s.contains("2. View statistics for all users"), "Option 2 missing");
-        assertTrue(s.contains("3. Delete a user account"), "Option 3 missing");
-        assertTrue(s.contains("4. Return to the previous menu"), "Option 4 missing");
-    }
+  @Test
+  @DisplayName("Ordinary admin menu prints header and 4 options::full check")
+  void showOrdinaryAdminMenuFull_printsExpected() {
+    ConsoleMenus.showOrdinaryAdminMenu();
+    String s = stdout();
+    assertTrue(
+        s.contains("You are now in the Administrator menu. Please select an option:"),
+        "Header missing");
+    assertTrue(s.contains("1. View all users"), "Option 1 missing");
+    assertTrue(s.contains("2. View statistics for all users"), "Option 2 missing");
+    assertTrue(s.contains("3. Delete a user account"), "Option 3 missing");
+    assertTrue(s.contains("4. Return to the previous menu"), "Option 4 missing");
+  }
 }

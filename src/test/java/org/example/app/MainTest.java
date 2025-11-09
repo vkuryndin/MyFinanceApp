@@ -32,7 +32,8 @@ import org.junit.jupiter.api.*;
  * ({@code append=true}) so that coverage from the external JVM is recorded into the specified exec
  * file.
  *
- * <p><b>Notes:</b> Temporary directories are created with  and are not explicitly deleted by these tests.
+ * <p><b>Notes:</b> Temporary directories are created with and are not explicitly deleted by these
+ * tests.
  *
  * @see org.example.app.Main
  */
@@ -130,6 +131,20 @@ class MainTest {
 
   // ------ BASIC SMOKE TESTS ------
 
+  /**
+   * Verifies that the application shows the Login menu and exits cleanly with status code 0 when
+   * the user immediately selects the Exit option.
+   *
+   * <p><b>Flow:</b> feed {@code 3} (Exit) → expect header of the Login menu to be printed and
+   * {@code exitCode == 0}.
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   *   <li>Login menu header {@code "You are now in the LogIn menu"} is present in stdout
+   * </ul>
+   */
   @Test
   @DisplayName("Application should display login menu and exit with code 0")
   void start_then_exit_ok() throws Exception {
@@ -143,6 +158,17 @@ class MainTest {
     assertTrue(r.out.contains("You are now in the LogIn menu"), "Main menu should be shown.");
   }
 
+  /**
+   * Ensures graceful handling of an invalid option at the Login menu followed by Exit.
+   *
+   * <p><b>Flow:</b> feed {@code 99} (invalid) → {@code 3} (Exit).
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   * </ul>
+   */
   @Test
   @DisplayName("Application should exit with code 0 after invalid option input")
   void invalid_then_exit_ok() throws Exception {
@@ -155,24 +181,75 @@ class MainTest {
     assertEquals(0, r.exitCode, "App must exit with code 0 after invalid option.");
   }
 
+  /**
+   * Validates the documentation screen flow and successful exit afterward.
+   *
+   * <p><b>Flow:</b>
+   *
+   * <ol>
+   *   <li>{@code 2} → open documentation
+   *   <li>{@code 1} → return to Login menu
+   *   <li>{@code 3} → exit application
+   * </ol>
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   *   <li>Documentation header is printed
+   *   <li>Return instruction is printed
+   * </ul>
+   */
   @Test
   @DisplayName("Application should exit with code 0 after viewing docs")
   void docs_then_exit_ok() throws Exception {
     Path wd = newWorkDir();
-    ExecResult r = runApp(String.join("\n", "2", "3") + "\n", wd); // View docs -> Exit
+
+    // Flow:
+    // 2 -> View docs
+    // 1 -> Return from documentation back to the Login/Main menu
+    // 3 -> Exit application
+    String userFlow = String.join("\n", "2", "1", "3") + "\n";
+
+    ExecResult r = runApp(userFlow, wd);
+
     if (r.exitCode != 0) {
       System.out.println("OUT:\n" + r.out);
       System.err.println("ERR:\n" + r.err);
     }
-    assertEquals(0, r.exitCode, "App must exit with code 0 after docs.");
+
+    // must exit successfully
+    assertEquals(0, r.exitCode, "App must exit with code 0 after docs navigation + exit.");
+
+    // sanity checks: docs were shown and prompt to return was printed
+    assertTrue(
+        r.out.contains("MyFinanceApp Quick Start Guide"), "Documentation header should be printed");
+    assertTrue(
+        r.out.contains("Press 1 to return to the Login menu"),
+        "Docs screen should instruct how to return");
   }
 
   // ------ SUPER ADMIN SCENARIO (1st user) ------
 
   /**
-   * First run without data/finance-data.json: - Log in -> create 1st user (=> SUPER_ADMIN) -
-   * Provide valid strings for possible additional questions (name, surname, email, etc.) - Then a
-   * long tail of menu options: 1/2/3/0/9/... to enter several branches and then exit
+   * Covers the first-user bootstrap flow: the initial login creates a {@code SUPER_ADMIN}, then the
+   * user navigates through Main Actions to add a couple of expenses, views the wallet, returns to
+   * the Actions menu and exits.
+   *
+   * <p><b>Flow:</b>
+   *
+   * <ol>
+   *   <li>Login → create first user (becomes {@code SUPER_ADMIN})
+   *   <li>Open Main Actions, add two expenses (empty date = today), view wallet
+   *   <li>Return to Actions, then Exit
+   * </ol>
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   *   <li>Actions and Main Actions headers are printed
+   * </ul>
    */
   @Test
   @DisplayName(
@@ -237,7 +314,7 @@ class MainTest {
     assertEquals(0, r.exitCode, "App must exit with code 0.");
     assertTrue(r.out.contains("You are now in the Actions menu"), "Should reach Actions menu.");
     assertTrue(
-        r.out.contains("You are now in the Main Actions menu"), "Should reach Main Actions menu.");
+        r.out.contains("You are now in the User Actions menu"), "Should reach User Actions menu.");
   }
 
   /** Invalid option at Login menu → then Exit. Covers default-branch in runLoginMenu. */
@@ -261,7 +338,19 @@ class MainTest {
     assertTrue(r.out.contains("You are now in the LogIn menu"), "Login menu should be printed.");
   }
 
-  /** Create first user (becomes SUPER_ADMIN) → immediately Logout → Exit. Covers logout path. */
+  /**
+   * Creates the first user (becoming {@code SUPER_ADMIN}), immediately logs out, and exits the
+   * application. Exercises the logout path right after bootstrap.
+   *
+   * <p><b>Flow:</b> Login → create first user → Actions → Logout → Login menu → Exit.
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   *   <li>Actions menu header is printed before logout
+   * </ul>
+   */
   @Test
   @DisplayName("First user becomes super admin, logs out, and exits with code 0")
   void createSuperadmin_then_logout_then_exit() throws Exception {
@@ -298,11 +387,20 @@ class MainTest {
   }
 
   /**
-   * Go to Main Actions and immediately return back, then Exit. Covers 'Return to previous menu'
-   * branch in main actions.
+   * Opens User Actions and immediately returns to the previous menu before exiting. Covers the
+   * "Return to previous menu" branch in Main Actions.
+   *
+   * <p><b>Flow:</b> Login (bootstrap) → User Actions → Return (14) → Exit.
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   *   <li>Main Actions header is printed
+   * </ul>
    */
   @Test
-  @DisplayName("Enter Main Actions and return to cover 'Return to previous menu' branch")
+  @DisplayName("Enter User Actions and return to cover 'Return to previous menu' branch")
   void mainActions_return_immediately_then_exit() throws Exception {
     Path wd = newWorkDir();
     String script =
@@ -332,12 +430,22 @@ class MainTest {
     }
     assertEquals(0, r.exitCode, "App must exit with code 0.");
     assertTrue(
-        r.out.contains("You are now in the Main Actions menu"), "Main Actions should be printed.");
+        r.out.contains("You are now in the User Actions menu"), "User Actions should be printed.");
   }
 
   /**
-   * Actions menu: several invalid inputs → then Exit. Covers default-branch in runActionsMenu and
-   * readIntSafe loop.
+   * Exercises invalid input handling in the Actions menu: non-numeric, empty, and out-of-range
+   * values, then exits successfully.
+   *
+   * <p><b>Flow:</b> Login (bootstrap) → Actions → {@code x}, empty string, {@code 99} → {@code 4}
+   * (Exit).
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   *   <li>At least one "Invalid option" message is printed
+   * </ul>
    */
   @Test
   @DisplayName(
@@ -376,10 +484,24 @@ class MainTest {
   }
 
   /**
-   * Main actions: add income, then view statistics, back, exit. Exercises income path & stats view.
+   * Runs a short Main Actions scenario: add an income transaction, open the statistics view, return
+   * to Actions, and exit.
+   *
+   * <p><b>Flow:</b> Login (bootstrap) → Main Actions → Add income → View statistics → Return →
+   * Exit.
+   *
+   * <p><b>Rationale:</b> validates the income path and statistics screen without asserting exact
+   * report content (smoke/path coverage).
+   *
+   * <p><b>Asserts:</b>
+   *
+   * <ul>
+   *   <li>Exit code equals 0
+   *   <li>Main Actions header is printed
+   * </ul>
    */
   @Test
-  @DisplayName("Main Actions should allow adding income and viewing statistics")
+  @DisplayName("User Actions should allow adding income and viewing statistics")
   void mainActions_addIncome_viewStats_then_exit() throws Exception {
     Path wd = newWorkDir();
     String script =
@@ -414,7 +536,7 @@ class MainTest {
     }
     assertEquals(0, r.exitCode, "App must exit 0.");
     assertTrue(
-        r.out.contains("You are now in the Main Actions menu"), "Main actions should appear.");
+        r.out.contains("You are now in the User Actions menu"), "User actions should appear.");
   }
 
   /**

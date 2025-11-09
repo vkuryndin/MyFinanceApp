@@ -12,7 +12,7 @@ public class Wallet {
   private final Map<String, Double> budgets = new LinkedHashMap<>();
   private final Map<String, Double> spentByCat = new HashMap<>();
 
-  //the main method for adding transaction
+  // the main method for adding transaction
   public void addTransaction(double amount, String title, Transaction.Type type) {
     transactions.add(new Transaction(amount, title, type));
     if (type == Transaction.Type.EXPENSE) {
@@ -63,7 +63,7 @@ public class Wallet {
     return limit - getSpentByCategory(category);
   }
 
-  //working with alerts
+  // working with alerts
   public List<String> getBudgetAlerts() {
     List<String> alerts = new ArrayList<>();
     for (var e : budgets.entrySet()) {
@@ -84,7 +84,7 @@ public class Wallet {
     return alerts;
   }
 
-  //to string override
+  // to string override
   @Override
   public String toString() {
     return "Wallet{"
@@ -159,7 +159,8 @@ public class Wallet {
     for (Transaction tx : transactions) {
       if (type != null && tx.getType() != type) continue;
 
-      // Date is taken from Transaction#getDate() (we have added dateIso anf getDate() methods to the Transaction class).
+      // Date is taken from Transaction#getDate() (we have added dateIso anf getDate() methods to
+      // the Transaction class).
       LocalDate d = tx.getDate();
       if (f != null && d.isBefore(f)) continue;
       if (t != null && d.isAfter(t)) continue;
@@ -244,8 +245,8 @@ public class Wallet {
   }
 
   /**
-   * Rename budget category (and move expenses sum for category inside spentByCat).
-   * Returns true, if oldName existed and transition is done .
+   * Rename budget category (and move expenses sum for category inside spentByCat). Returns true, if
+   * oldName existed and transition is done .
    */
   public boolean renameCategory(String oldName, String newName) {
     if (oldName == null || newName == null) return false;

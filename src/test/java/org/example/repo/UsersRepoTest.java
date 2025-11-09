@@ -172,6 +172,13 @@ public class UsersRepoTest {
     assertFalse(repo.deleteUser("xuser", null));
   }
 
+  /**
+   * <b>Intent:</b> Role management: a valid administrator can grant and later revoke {@code ADMIN}
+   * from another user.
+   *
+   * <p><b>Asserts:</b> {@code addAdmin} succeeds and sets the role; {@code removeAdmin} succeeds
+   * and clears the role.
+   */
   @Test
   @DisplayName("Assign and remove ordinary admin account")
   void addRemoveAdmin() {
@@ -187,6 +194,18 @@ public class UsersRepoTest {
     assertFalse(repo.find("userok").hasRole(User.Role.ADMIN));
   }
 
+  /**
+   * <b>Intent:</b> {@code addAdmin} error cases with valid login formats:
+   *
+   * <ul>
+   *   <li>Invalid credentials of the acting admin → {@link RepoExceptions.Invalid}
+   *   <li>Non-existent candidate → {@link RepoExceptions.NotFound}
+   *   <li>Repeated assignment → {@link RepoExceptions.Conflict}
+   * </ul>
+   *
+   * <p><b>Asserts:</b> Exceptions match the scenario; a single successful assignment returns {@code
+   * true}.
+   */
   @Test
   @DisplayName("addAdmin: user account errors/roles (valid logins)")
   void addAdminErrors() {

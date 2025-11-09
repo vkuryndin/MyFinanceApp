@@ -127,7 +127,7 @@ public final class WalletJson {
     }
 
     try (BufferedReader r = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-      // Строгий JSON-парсер — сразу поймаем синтаксические проблемы
+      // Strict JSON-parser — immediately catch all problems
       JsonReader jr = new JsonReader(r);
       jr.setLenient(false);
 
@@ -172,7 +172,7 @@ public final class WalletJson {
               + budgetsSet);
 
     } catch (JsonSyntaxException | MalformedJsonException e) {
-      // Чёткое сообщение, где сломался JSON
+      // Message where JSON is broken
       System.err.println(
           "Wallet JSON is malformed ("
               + prettyJsonErrorLocation(e)
@@ -287,7 +287,7 @@ public final class WalletJson {
   }
 
   private static String prettyJsonErrorLocation(Throwable e) {
-    // Пример сообщений от Gson: "Expected ':' at line 12 column 7 path $.transactions[3].title"
+    // Example of message form Gson: "Expected ':' at line 12 column 7 path $.transactions[3].title"
     String msg = (e == null || e.getMessage() == null) ? "" : e.getMessage();
     if (msg.isEmpty()) return "unknown location";
 

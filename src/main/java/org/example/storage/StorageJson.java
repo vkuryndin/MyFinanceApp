@@ -28,18 +28,18 @@ public final class StorageJson {
     try {
       Path parent = file.getParent();
 
-      // 1) Если родитель существует, но это НЕ директория → логируем и выходим (файл не создаём)
+      // 1) If parent exists and this is not a folder  → log and exit  (file is not created)
       if (parent != null && Files.exists(parent) && !Files.isDirectory(parent)) {
         System.err.println("Error saving users repository to file " + file + ": " + parent);
-        return; // <— КЛЮЧЕВОЕ: ничего дальше не делаем
+        return; //
       }
 
-      // 2) Создаём директории только если их нет
+      // 2) Create directories if they are not present
       if (parent != null && !Files.exists(parent)) {
         Files.createDirectories(parent);
       }
 
-      // 3) Пишем JSON (создаст файл сам при необходимости)
+      // 3) Writing JSON (creating a file if needed)
       try (BufferedWriter w =
           Files.newBufferedWriter(
               file,
@@ -49,11 +49,11 @@ public final class StorageJson {
         GSON.toJson(usersRepo, w);
       }
 
-      // 4) Лог об успешном сохранении (опционально)
+      // 4) Logging successful saving  (optional)
       System.out.println("Saved users repository to " + file.toAbsolutePath());
 
     } catch (IOException e) {
-      // Любые IOException — логируем и НЕ пробрасываем (по контракту теста)
+      // any IOException — logging and not th rowing
       System.err.println("Error saving users repository to file " + file + ": " + e.getMessage());
       e.printStackTrace();
     }

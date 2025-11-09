@@ -12,53 +12,6 @@ import org.example.storage.WalletJson;
 public class ConsoleUtils {
   private ConsoleUtils() {}
 
-  // private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
-
-  /*
-    private static LocalDate askDate(Scanner scanner, String prompt) {
-      System.out.println(prompt);
-      System.out.print("> ");
-      String s = scanner.nextLine().trim();
-      if (s.isEmpty()) return null; // без границы
-      try {
-        return LocalDate.parse(s, ISO);
-      } catch (DateTimeParseException e) {
-        System.out.println("Invalid date format. Expected yyyy-MM-dd. Try again.");
-        return askDate(scanner, prompt);
-      }
-    }
-
-    private static String askDateIsoOrToday(Scanner scanner, String prompt) {
-      System.out.println(prompt);
-      System.out.print("> ");
-      String s = scanner.nextLine().trim();
-      if (s.isEmpty()) return LocalDate.now().format(ISO);
-      try {
-        // проверим, что формат корректный
-        LocalDate.parse(s, ISO);
-        return s;
-      } catch (DateTimeParseException e) {
-        System.out.println("Invalid date format. Expected yyyy-MM-dd. Using today.");
-        return LocalDate.now().format(ISO);
-      }
-    }
-
-    private static Set<String> askCategories(Scanner scanner, String prompt) {
-      System.out.println(prompt);
-      System.out.print("> ");
-      String line = scanner.nextLine();
-      if (line == null || line.trim().isEmpty()) return Collections.emptySet();
-      String[] parts = line.split(",");
-      Set<String> set = new LinkedHashSet<>();
-      for (String p : parts) {
-        String v = p.trim();
-        if (!v.isEmpty()) set.add(v);
-      }
-      return set;
-    }
-  */
-  // my older methods
-
   public static boolean checkLogonStatus(User currentUser) {
     if (!(currentUser == null)) {
       System.out.println(
@@ -202,9 +155,8 @@ public class ConsoleUtils {
       }
     }
 
-    // viewing alerts (пороговые уведомления по бюджетам)
-    // ВАЖНО: имя метода — getBudgetAlerts() (CamelCase). Если у тебя ещё старое имя, замени на
-    // него.
+    // viewing alerts (thershold valus for budgets)
+
     var alerts = currentUser.wallet.getBudgetAlerts();
     for (String a : alerts) {
       System.out.println("! " + a);
@@ -407,7 +359,7 @@ public class ConsoleUtils {
     return true;
   }
 
-  // ====== ДОБАВЛЕНО: Расширенная статистика (критерий 11 = 2/2) ======
+  // ====== Added for advanced statistics feature ======
 
   public static void handleAdvancedStatistics(Scanner scanner, User u) {
     System.out.println("=== Advanced statistics (period/categories) ===");
@@ -476,19 +428,19 @@ public class ConsoleUtils {
     }
   }
 
-  // ====== ДОБАВЛЕНО: Хендлеры для критерия 12 (редактирование бюджетов) ======
+  // ====== Added handlers for  budget editing feature 12 ======
 
   public static void handleUpdateBudgetLimit(Scanner scanner, User u) {
     System.out.println("You are going to update a budget limit");
 
-    // СНАЧАЛА — выбрать корректную существующую категорию:
+    // first of all  — select the correct existing category:
     String cat = askExistingBudgetCategory(scanner, u);
     if (cat == null) {
       System.out.println("Operation cancelled.");
-      return; // пользователь ввёл CANCEL или нет категорий
+      return; // the user entered Cancel or now existing categories
     }
 
-    // ТЕПЕРЬ — спросить новый лимит (>= 0):
+    // now — ask for nw limit (>= 0):
     double newLimit = ConsoleInput.readNonNegativeDouble(scanner, "Enter new limit (>= 0):");
     boolean ok = u.wallet.updateBudgetLimit(cat, newLimit);
     if (ok) {
@@ -497,8 +449,8 @@ public class ConsoleUtils {
       double rem = u.wallet.getRemainingBudget(cat);
       System.out.println("Spent: " + spent + ", remaining: " + rem);
     } else {
-      // Теоретически не должно случиться (категорию мы уже верифицировали),
-      // но оставим защитное сообщение.
+      // theoretically will not happen (we have verified our category),
+      // but wqe will leave this message for safety reasons.
       System.out.println("Category not found in budgets.");
     }
   }
@@ -563,14 +515,14 @@ public class ConsoleUtils {
       if (cat.equalsIgnoreCase("CANCEL")) return null;
       if (budgets.containsKey(cat)) return cat;
 
-      // не нашли — повторно показываем список и просим ещё раз
+      // if not found - showing the categories list anf ask again
       System.out.println(
           "Category not found. Please choose one from the list above or type CANCEL.");
       System.out.print("> ");
     }
   }
 
-  // handle methods for exporting and iporting json
+  // handle methods for exporting and importing json
   public static void handleExportJson(Scanner scanner, User u) {
     // String path = ConsoleInput.readStringSafe(scanner, "Enter file path for JSON export:");
     try {
@@ -582,12 +534,6 @@ public class ConsoleUtils {
   }
 
   public static void handleImportJson(Scanner scanner, User u) {
-    // String path = ConsoleInput.readStringSafe(scanner, "Enter JSON file path to import:");
-    // java.nio.file.Path p = java.nio.file.Path.of(path);
-    // if (!java.nio.file.Files.exists(p)) {
-    //    System.out.println("File not found: " + p.toAbsolutePath());
-    //    return;
-    // }
     try {
       WalletJson.loadInto(u);
     } catch (Exception e) {
