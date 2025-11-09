@@ -26,7 +26,7 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      # ЕДИНСТВЕННЫЙ запуск Gradle: clean + build (включает check, jacoco, spotbugs и т.д.)
+      # the only Gradle launch: clean + build (including check, jacoco, spotbugs and so on)
       - name: Build (tests + coverage gate)
         run: ./gradlew clean build --no-daemon --stacktrace
 
@@ -39,7 +39,7 @@ jobs:
          ref="${ref//\//-}"   # change all / to -
          echo "safe_name=myfinanceapp-${ref}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
-      # JAR — только если сборка зелёная
+      # JAR — only if build is green
       - name: Upload build artifacts (JAR)
         if: success()
         uses: actions/upload-artifact@v4
@@ -49,7 +49,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      # Отчёты всегда прикрепляем, даже если build упал
+      # Always attaching report, even if build fails
       - name: Upload JUnit test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -88,7 +88,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      # ⬇⬇⬇ ДОБАВЛЕНО: генерация SVG-бейджей покрытия из XML JaCoCo
+      #: generating SVG badges for XML JaCoCo coverage
       - name: Generate JaCoCo badges
         if: github.event_name != 'pull_request'
         uses: cicirello/jacoco-badge-generator@v2.12.1
@@ -99,7 +99,7 @@ jobs:
           branches-badge-filename: branches.svg
           generate-coverage-badge: true
           generate-branches-badge: true
-          # опционально, чтобы не падал ран, если вдруг CSV не найден:
+          # optionally, for the build not to fail, if CSV not found:
           # on-missing-report: warn
 
       - name: Commit badges
