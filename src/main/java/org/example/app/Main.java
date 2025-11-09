@@ -168,21 +168,21 @@ public class Main {
           ConsoleUtils.handleTransfer(scanner, currentUser, USERS);
           break;
 
-          // ===== НОВОЕ =====
+          // ===== Advanced Statistics Feature=====
         case 7:
-          // Расширенная статистика: периоды + несколько категорий (критерий 11 = 2/2)
+          // Advanced statistics: periods + several categories
           ConsoleUtils.handleAdvancedStatistics(scanner, currentUser);
           break;
         case 8:
-          // Обновить лимит бюджета (критерий 12)
+          // Update budget limit
           ConsoleUtils.handleUpdateBudgetLimit(scanner, currentUser);
           break;
         case 9:
-          // Удалить бюджет (критерий 12)
+          // Delete a budget
           ConsoleUtils.handleRemoveBudget(scanner, currentUser);
           break;
         case 10:
-          // Переименовать категорию бюджета (критерий 12)
+          // Rename budget category
           ConsoleUtils.handleRenameCategory(scanner, currentUser);
           break;
           // =================
@@ -263,22 +263,33 @@ public class Main {
   }
 
   private static void runOrdinaryAdminMenu() {
-    ConsoleMenus.showOrdinaryAdminMenu();
-    int option = ConsoleInput.readIntSafe(scanner);
-    switch (option) {
-      case 1:
-        System.out.println("Case1");
-        // TO FIX: implement logic here
-        break;
-      case 2:
-        System.out.println("Case2");
-        // TO FIX: implement logic here
-        break;
-      case 3:
-        System.out.println("You are going to return to main menu");
-        return;
-      default:
-        System.out.println("Invalid option, Choose  1-3");
-    }
+      while (true) {
+          ConsoleMenus.showOrdinaryAdminMenu();
+          int option = ConsoleInput.readIntSafe(scanner);
+          switch (option) {
+              case 1:
+                  System.out.println("You are going to view all users");
+                  USERS.listAllUsers();
+                  break;
+              case 2:
+                  System.out.println("You are going to view statistics for all users");
+                  List<User> allUsers = USERS.listAll();
+                  for (User u : allUsers) {
+                      System.out.println("Displaying statistics for user: " + u.login);
+                      ConsoleUtils.handleViewStatistics(u);
+                  }
+                  break;
+              case 3:
+                  if (ConsoleUtils.confirmAction(scanner, "deleting the selected user account")) {
+                      ConsoleUtils.handleDeleteSelectedUserAccount(scanner, currentUser, USERS);
+                  }
+                  break;
+              case 4:
+                  System.out.println("You are going to return to main menu");
+                  return;
+              default:
+                  System.out.println("Invalid option, Choose  1-4");
+          }
+      }
   }
 }

@@ -12,6 +12,7 @@ public class Wallet {
   private final Map<String, Double> budgets = new LinkedHashMap<>();
   private final Map<String, Double> spentByCat = new HashMap<>();
 
+  //the main method for adding transaction
   public void addTransaction(double amount, String title, Transaction.Type type) {
     transactions.add(new Transaction(amount, title, type));
     if (type == Transaction.Type.EXPENSE) {
@@ -19,7 +20,7 @@ public class Wallet {
     }
   }
 
-  // Удобная перегрузка: если хочешь сам создать Transaction с датой
+  // overload add Transaction method - create Transaction with date
   public void addTransaction(Transaction tx) {
     if (tx == null) return;
     transactions.add(tx);
@@ -62,6 +63,7 @@ public class Wallet {
     return limit - getSpentByCategory(category);
   }
 
+  //working with alerts
   public List<String> getBudgetAlerts() {
     List<String> alerts = new ArrayList<>();
     for (var e : budgets.entrySet()) {
@@ -82,6 +84,7 @@ public class Wallet {
     return alerts;
   }
 
+  //to string override
   @Override
   public String toString() {
     return "Wallet{"
@@ -136,15 +139,15 @@ public class Wallet {
     return m;
   }
 
-  // -------------------- НОВОЕ для критерия 11: периоды + мультикатегории --------------------
+  // -------------------- New for advanced statistics feature  --------------------
 
   /**
-   * Универсальный фильтр транзакций.
+   * Universal transaction filter.
    *
-   * @param from включительно, может быть null
-   * @param to включительно, может быть null
-   * @param categories множество категорий (сравнение по title); null/пусто = все
-   * @param type тип транзакции или null = оба
+   * @param from included, can be null
+   * @param to включительно, can be null
+   * @param categories a quantity of categories ( using title for camparison); null/пусто = all
+   * @param type transaction type or null = all
    */
   public List<Transaction> findTransactions(
       LocalDate from, LocalDate to, Set<String> categories, Transaction.Type type) {
@@ -156,7 +159,7 @@ public class Wallet {
     for (Transaction tx : transactions) {
       if (type != null && tx.getType() != type) continue;
 
-      // Дата берётся из Transaction#getDate() (мы добавили в Transaction dateIso и getDate()).
+      // Date is taken from Transaction#getDate() (we have added dateIso anf getDate() methods to the Transaction class).
       LocalDate d = tx.getDate();
       if (f != null && d.isBefore(f)) continue;
       if (t != null && d.isAfter(t)) continue;
@@ -166,7 +169,7 @@ public class Wallet {
       }
       out.add(tx);
     }
-    // сортировка по дате (по желанию)
+    // sorting by date
     out.sort(Comparator.comparing(Transaction::getDate));
     return out;
   }
@@ -220,29 +223,29 @@ public class Wallet {
     return out;
   }
 
-  // -------------------- (Опционально) для критерия 12: редактирование бюджетов
+  // -------------------- Budgets editing
   // --------------------
 
-  /** Список категорий, для которых задан бюджет. */
+  /** Categories list for which budget has been created. */
   public Set<String> listBudgetCategories() {
     return new LinkedHashSet<>(budgets.keySet());
   }
 
-  /** Обновить лимит бюджета; true если категория существовала. */
+  /** ОUpdate budget limit; true if category existed. */
   public boolean updateBudgetLimit(String category, double newLimit) {
     if (!budgets.containsKey(category)) return false;
     budgets.put(category, newLimit);
     return true;
   }
 
-  /** Удалить бюджет категории; true если удалено. */
+  /** Delete budget category, true if deleted. */
   public boolean removeBudget(String category) {
     return budgets.remove(category) != null;
   }
 
   /**
-   * Переименовать категорию бюджета (и перенос сумм трат по категории внутри spentByCat).
-   * Возвращает true, если oldName существовала и перенос выполнен.
+   * Rename budget category (and move expenses sum for category inside spentByCat).
+   * Returns true, if oldName existed and transition is done .
    */
   public boolean renameCategory(String oldName, String newName) {
     if (oldName == null || newName == null) return false;
@@ -252,15 +255,15 @@ public class Wallet {
 
     boolean changed = false;
 
-    // перенос лимита бюджета
+    // move budgets limit
     Double lim = budgets.remove(oldN);
     if (lim != null) {
-      // если в целевой уже есть лимит — перезаписываем (можешь поменять логику при желании)
+      // if the target category already has a limit - overwrite
       budgets.put(newN, lim);
       changed = true;
     }
 
-    // перенос накопленных трат в spentByCat
+    // move summed expenses to spentByCat
     Double spent = spentByCat.remove(oldN);
     if (spent != null) {
       spentByCat.merge(newN, spent, Double::sum);

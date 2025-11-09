@@ -32,8 +32,7 @@ import org.junit.jupiter.api.*;
  * ({@code append=true}) so that coverage from the external JVM is recorded into the specified exec
  * file.
  *
- * <p><b>Notes:</b> Temporary directories are created with {@link
- * java.nio.file.Files#createTempDirectory(String)} and are not explicitly deleted by these tests.
+ * <p><b>Notes:</b> Temporary directories are created with  and are not explicitly deleted by these tests.
  *
  * @see org.example.app.Main
  */

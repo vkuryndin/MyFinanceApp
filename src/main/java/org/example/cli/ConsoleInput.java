@@ -27,6 +27,8 @@ public class ConsoleInput {
     }
   }
 
+  //reading string safely, digits not allowed,
+  //will be used when entering names and surnames.
   public static String readStringSafe(Scanner scanner, String prompt, boolean disallowDigits) {
     while (true) {
       System.out.println(prompt);
@@ -67,7 +69,7 @@ public class ConsoleInput {
   }
 
   // reading int safely from the console
-  // this is used for the menu options
+  // this is used for the menu options, with prompt
   public static int readIntSafe(Scanner scanner, String prompt) {
     while (true) {
       System.out.println(prompt);
@@ -81,6 +83,8 @@ public class ConsoleInput {
     }
   }
 
+    // reading int safely from the console
+    // this is used for the menu options, without prompt
   public static int readIntSafe(Scanner scanner) {
     while (true) {
       String s = scanner.nextLine().trim();
@@ -105,7 +109,7 @@ public class ConsoleInput {
     }
   }
 
-  // NEW: допускает 0 (для лимитов бюджета)
+  // NEW: allows 0 (for budget limits)
   public static double readNonNegativeDouble(Scanner scanner, String prompt) {
     while (true) {
       System.out.println(prompt);
@@ -121,7 +125,7 @@ public class ConsoleInput {
     }
   }
 
-  // NEW: дата ISO или сегодня по умолчанию
+  // NEW: date ISO or today by default
   public static String readDateIsoOrToday(Scanner scanner, String prompt) {
     System.out.println(prompt);
     System.out.println("> ");
@@ -136,6 +140,7 @@ public class ConsoleInput {
     }
   }
 
+  //reading date with prompt
   public static LocalDate readDateOrNull(Scanner scanner, String prompt) {
     System.out.println(prompt);
     System.out.println("> ");
@@ -149,7 +154,7 @@ public class ConsoleInput {
     }
   }
 
-  // NEW: парсинг множества категорий "cat1, cat2, cat3"
+  // NEW: parsing multiply categories "cat1, cat2, cat3"
   public static Set<String> readCategoriesSet(Scanner scanner, String prompt) {
     System.out.println(prompt);
     System.out.println("> ");

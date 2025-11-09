@@ -88,7 +88,7 @@ public class ConsoleMenusTest {
     ConsoleMenus.showActionsMenu();
     String s = stdout();
     assertTrue(s.contains("You are now in the Actions menu"), "Header missing");
-    assertTrue(s.contains("1. Main actions"), "Main actions missing");
+    assertTrue(s.contains("1. User actions"), "User actions missing");
     assertTrue(s.contains("2. Administrator actions"), "Admin actions missing");
     assertTrue(s.contains("3. Log out"), "Log out missing");
     assertTrue(s.contains("4. Exit"), "Exit missing");
@@ -105,11 +105,11 @@ public class ConsoleMenusTest {
    * <b>Then</b> the header and key options should be present.
    */
   @Test
-  @DisplayName("Main Actions menu prints all 1..8 options")
+  @DisplayName("User Actions menu prints all 1..8 options")
   void showMainActionsMenu_printsExpected() {
     ConsoleMenus.showMainActionsMenu();
     String s = stdout();
-    assertTrue(s.contains("You are now in the Main Actions menu"), "Header missing");
+    assertTrue(s.contains("You are now in the User Actions menu"), "Header missing");
     assertTrue(s.contains("1. Add income"));
     assertTrue(s.contains("2. Add expense"));
     assertTrue(s.contains("3. View wallet"));
@@ -136,13 +136,13 @@ public class ConsoleMenusTest {
    * <b>Then</b> it should contain admin-like wording and provide a way to return/back.
    */
   @Test
-  @DisplayName("Ordinary Admin menu prints options")
+  @DisplayName("Ordinary Admin menu prints options - soft checking")
   void showOrdinaryAdminMenu_printsExpected() {
     ConsoleMenus.showOrdinaryAdminMenu();
     String s = stdout();
-    // В файле есть отдельный заголовок для обычного админа
+    // there is a header for ordinary admin
     assertTrue(s.toLowerCase().contains("admin"), "Must look like admin menu");
-    // Набор проверок мягкий: наличие хотя бы пары пунктов и фразы про admin
+    //The check are intentiobnally softй: the existence of sewveral options and the return to previous menu option
     assertTrue(
         s.contains("Return to the previous menu") || s.contains("Back"),
         "Should contain return/back option");
@@ -169,4 +169,16 @@ public class ConsoleMenusTest {
         s.contains("Return to the previous menu") || s.contains("Back"),
         "Should contain return/back option");
   }
+
+    @Test
+    @DisplayName("Ordinary admin menu prints header and 4 options::full check")
+    void showOrdinaryAdminMenuFull_printsExpected() {
+        ConsoleMenus.showOrdinaryAdminMenu();
+        String s = stdout();
+        assertTrue(s.contains("You are now in the Administrator menu. Please select an option:"), "Header missing");
+        assertTrue(s.contains("1. View all users"), "Option 1 missing");
+        assertTrue(s.contains("2. View statistics for all users"), "Option 2 missing");
+        assertTrue(s.contains("3. Delete a user account"), "Option 3 missing");
+        assertTrue(s.contains("4. Return to the previous menu"), "Option 4 missing");
+    }
 }

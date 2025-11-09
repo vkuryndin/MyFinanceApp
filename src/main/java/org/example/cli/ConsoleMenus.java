@@ -9,7 +9,7 @@ public class ConsoleMenus {
   // main actions menu
   public static void showMainActionsMenu() {
     System.out.println("==========================");
-    System.out.println("You are now in the Main Actions menu. Please select an option:");
+    System.out.println("You are now in the User Actions menu. Please select an option:");
     System.out.println("1. Add income");
     System.out.println("2. Add expense");
     System.out.println("3. View wallet");
@@ -53,7 +53,7 @@ public class ConsoleMenus {
     System.out.println("> ");
   }
 
-  // LogIn menu
+  // Login menu
   public static void showLoginMenu() {
     System.out.println("You are now in the LogIn menu. Please select an option:");
     System.out.println("1. Log in");
@@ -65,7 +65,7 @@ public class ConsoleMenus {
   // actions menu
   public static void showActionsMenu() {
     System.out.println("You are now in the Actions menu. Please select an option:");
-    System.out.println("1. Main actions");
+    System.out.println("1. User actions");
     System.out.println("2. Administrator actions");
     System.out.println("3. Log out");
     System.out.println("4. Exit");

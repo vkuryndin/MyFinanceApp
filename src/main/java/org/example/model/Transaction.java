@@ -20,14 +20,14 @@ public final class Transaction {
 
   private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
-  // === Конструкторы ===
+  // === Constructors ===
 
-  /** Обычный конструктор — генерирует новый GUID */
+  /** Ordinary constructor — generates new GUID */
   public Transaction(double amount, String title, Type type) {
     this(UUID.randomUUID().toString(), amount, title, type, LocalDate.now().format(ISO));
   }
 
-  /** С датой (генерирует новый GUID) */
+  /** With date (generates new GUID) */
   public Transaction(double amount, String title, Type type, LocalDate date) {
     this(
         UUID.randomUUID().toString(),
@@ -37,12 +37,12 @@ public final class Transaction {
         (date != null) ? ISO.format(date) : LocalDate.now().format(ISO));
   }
 
-  /** С ISO-датой (генерирует новый GUID) */
+  /** with ISO-date (generates new  GUID) */
   public Transaction(double amount, String title, Type type, String dateIso) {
     this(UUID.randomUUID().toString(), amount, title, type, dateIso);
   }
 
-  /** 🔹 Новый конструктор: используется при импорте из JSON, если GUID уже есть */
+  /** New  constructor: used when importing fron JSON, if GUID is present */
   public Transaction(String id, double amount, String title, Type type, String dateIso) {
     if (!Double.isFinite(amount) || amount <= 0.0) {
       throw new IllegalArgumentException("amount must be a positive finite number");
@@ -61,7 +61,7 @@ public final class Transaction {
     this.dateIso = normalizeIso(dateIso);
   }
 
-  // === Вспомогательные методы ===
+  // === Helpers ===
 
   private static String normalizeIso(String iso) {
     if (iso == null || iso.isBlank()) {
@@ -102,7 +102,7 @@ public final class Transaction {
     return type;
   }
 
-  // === Equals и HashCode по GUID ===
+  // === Equals anf HashCode by GUID ===
 
   @Override
   public boolean equals(Object o) {

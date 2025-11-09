@@ -37,7 +37,7 @@ public final class User {
     this.surname = surname;
     setPassword(rawPassword);
     if (id == 1) {
-      roles.add(Role.SUPER_ADMIN); // this implementation with roles
+      roles.add(Role.SUPER_ADMIN); // this implementation with roles,
     }
   }
 
@@ -73,16 +73,17 @@ public final class User {
   }
 
   // using hash function to hash password, previous implementation - not used now.
-  private static String sha256(String s) {
-    try {
-      MessageDigest md = MessageDigest.getInstance("SHA-256");
-      byte[] d = md.digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(d);
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-  }
+  //private static String sha256(String s) {
+  //  try {
+  //    MessageDigest md = MessageDigest.getInstance("SHA-256");
+  //    byte[] d = md.digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+  //    return HexFormat.of().formatHex(d);
+  //  } catch (NoSuchAlgorithmException e) {
+  //    throw new RuntimeException(e);
+  //  }
+  //}
 
+    //check passwword functions
   public boolean checkPassword(String rawPassword) {
     // System.out.println("Checking password for user " + this.login);
     // System.out.println("Raw password: " + rawPassword);
@@ -117,6 +118,7 @@ public final class User {
     roles.remove(r);
   }
 
+  //fixing spotbugs issue with getRoles  - EL_EXSPOSE_REP
   public Set<Role> getRoles() {
     return Set.copyOf(roles);
   }
