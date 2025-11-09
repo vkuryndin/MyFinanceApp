@@ -11,28 +11,29 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for ConsoleMenus display methods.
+ * Unit tests for {@link ConsoleMenus} rendering methods.
  *
- * <p>Tests validate menu output for all console menu types:
+ * <p>These tests verify that each console menu prints the expected header and a representative set
+ * of options. Since the methods under test only write to {@code System.out} (they do not read from
+ * {@code System.in}), verification is performed by capturing {@code System.out} and inspecting the
+ * produced text.
+ *
+ * <p><b>What is verified:</b>
  *
  * <ul>
- *   <li><b>Login menu:</b> Initial entry point with login, documentation, and exit options
- *   <li><b>Actions menu:</b> Main menu after login with main actions, admin actions, logout, and
- *       exit
- *   <li><b>Main Actions menu:</b> Financial operations (income, expense, wallet, budget,
- *       statistics, transfer)
- *   <li><b>Administrator menu:</b> Basic admin operations for ordinary administrators
- *   <li><b>Super Administrator menu:</b> Full administrative controls including user and role
- *       management
+ *   <li>Each menu prints its header (e.g., "You are now in the ... menu").
+ *   <li>Presence of key options to ensure the correct variant of the menu is shown
+ *       (login/actions/main actions/admin/super admin).
+ *   <li>Presence of a "return/back" option for admin menus (kept flexible to avoid brittle tests).
  * </ul>
  *
- * <p>These methods are pure output functions that don't read from stdin, making them safe to test
- * by capturing System.out. Tests verify that all expected menu headers and options are printed
- * correctly.
+ * <p><b>Isolation and cleanup:</b>
  *
- * <p>Uses {@code @BeforeEach} to redirect System.out to a ByteArrayOutputStream and
- * {@code @AfterEach} to restore the original output stream, ensuring test isolation and proper
- * cleanup.
+ * <ul>
+ *   <li>{@link BeforeEach} redirects {@code System.out} to a UTF-8 {@link ByteArrayOutputStream}.
+ *   <li>{@link AfterEach} restores the original {@code System.out} to avoid cross-test
+ *       interference.
+ * </ul>
  *
  * @see org.example.cli.ConsoleMenus
  */
@@ -56,8 +57,15 @@ public class ConsoleMenusTest {
     return out.toString(StandardCharsets.UTF_8);
   }
 
+  /**
+   * Verifies that the Login menu prints the expected header and the three primary options: "Log
+   * in", "View documentation", and "Exit".
+   *
+   * <p><b>Given</b> the Login menu is rendered<br>
+   * <b>Then</b> the header and options 1..3 should be present.
+   */
   @Test
-  @DisplayName("Login menu prints header and options")
+  @DisplayName("Login menu prints header and 3 primary options")
   void showLoginMenu_printsExpected() {
     ConsoleMenus.showLoginMenu();
     String s = stdout();
@@ -67,6 +75,13 @@ public class ConsoleMenusTest {
     assertTrue(s.contains("3. Exit"), "Option 3 missing");
   }
 
+  /**
+   * Verifies that the Actions menu prints its header and the four core options: "Main actions",
+   * "Administrator actions", "Log out", and "Exit".
+   *
+   * <p><b>Given</b> the Actions menu is rendered<br>
+   * <b>Then</b> the header and options 1..4 should be present.
+   */
   @Test
   @DisplayName("Actions menu prints header and options")
   void showActionsMenu_printsExpected() {
@@ -79,6 +94,16 @@ public class ConsoleMenusTest {
     assertTrue(s.contains("4. Exit"), "Exit missing");
   }
 
+  /**
+   * Verifies that the Main Actions menu prints its header and a representative set of action items.
+   *
+   * <p>The assertions intentionally check a broad range of options (income/expense/wallet/budget/
+   * statistics/transfer/export/import/account/delete/back) to ensure the menu content stays
+   * consistent without being overly fragile to cosmetic changes.
+   *
+   * <p><b>Given</b> the Main Actions menu is rendered<br>
+   * <b>Then</b> the header and key options should be present.
+   */
   @Test
   @DisplayName("Main Actions menu prints all 1..8 options")
   void showMainActionsMenu_printsExpected() {
@@ -100,6 +125,16 @@ public class ConsoleMenusTest {
     assertTrue(s.contains("14. Return to the previous menu"));
   }
 
+  /**
+   * Verifies that the Ordinary Administrator menu looks like an admin menu and contains a way to
+   * return to the previous screen.
+   *
+   * <p>The checks are <i>intentionally soft</i> (look for "admin" and a return/back option) to
+   * avoid frequent breakage from minor wording or ordering changes.
+   *
+   * <p><b>Given</b> the Ordinary Admin menu is rendered<br>
+   * <b>Then</b> it should contain admin-like wording and provide a way to return/back.
+   */
   @Test
   @DisplayName("Ordinary Admin menu prints options")
   void showOrdinaryAdminMenu_printsExpected() {
@@ -113,6 +148,16 @@ public class ConsoleMenusTest {
         "Should contain return/back option");
   }
 
+  /**
+   * Verifies that the Super Administrator menu looks like a super admin menu and contains a way to
+   * return to the previous screen.
+   *
+   * <p>The checks are <i>intentionally soft</i> (look for "super" and a return/back option) to
+   * avoid frequent breakage from cosmetic text changes.
+   *
+   * <p><b>Given</b> the Super Admin menu is rendered<br>
+   * <b>Then</b> it should contain super-admin wording and provide a way to return/back.
+   */
   @Test
   @DisplayName("Super Admin menu prints options")
   void showSuperAdminMenu_printsExpected() {

@@ -10,26 +10,34 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for ConsoleInput utility methods.
+ * Unit tests for the {@link ConsoleInput} utility methods.
  *
- * <p>Validates input parsing and validation for strings, integers, doubles, and logins. Tests
- * verify proper handling of:
+ * <p>These tests verify how user input is parsed and validated across multiple data types, ensuring
+ * predictable behavior regardless of platform defaults or unexpected user input.
+ *
+ * <p><b>Covered behaviors:</b>
  *
  * <ul>
- *   <li>Whitespace trimming and empty input rejection
- *   <li>Invalid input skipping (non-numeric, invalid format)
- *   <li>Decimal separator support (both dot and comma)
- *   <li>Login format validation (alphanumeric with constraints)
+ *   <li>Trimming leading/trailing whitespace and rejecting empty input
+ *   <li>Skipping invalid tokens until a valid value is provided
+ *   <li>Handling integer parsing, including negative values when allowed
+ *   <li>Supporting both dot and comma as decimal separators
+ *   <li>Validating login format and rejecting malformed logins
  * </ul>
  *
- * <p>Uses explicit UTF-8 encoding to ensure platform-independent behavior and avoid SpotBugs
- * warnings.
+ * <p><b>Encoding:</b> UTF-8 is used explicitly to guarantee consistent behavior across environments
+ * and to avoid warnings related to default system charset usage.
  *
  * @see org.example.cli.ConsoleInput
  */
 public class ConsoleInputTest {
 
-  /** Helper method to create Scanner with explicit UTF-8 encoding. */
+  /**
+   * Creates a {@link Scanner} instance that reads the provided input string using UTF-8 encoding.
+   *
+   * @param input simulated console input text
+   * @return scanner configured to read in UTF-8
+   */
   private static Scanner scannerUtf8(String input) {
     return new Scanner(
         new InputStreamReader(
@@ -37,6 +45,10 @@ public class ConsoleInputTest {
             StandardCharsets.UTF_8));
   }
 
+  /**
+   * Verifies that {@link ConsoleInput#readStringSafe(Scanner, String)} trims leading/trailing
+   * whitespace and returns the non-empty string as entered by the user.
+   */
   @Test
   @DisplayName("readStringSafe() should trim spaces and return valid string")
   void readStringSafe_basic() {
@@ -46,6 +58,10 @@ public class ConsoleInputTest {
     }
   }
 
+  /**
+   * Verifies that {@link ConsoleInput#readIntSafe(Scanner)} skips invalid tokens until the first
+   * valid integer is found. Negative integers are accepted if allowed by implementation.
+   */
   @Test
   @DisplayName("readIntSafe() should skip invalid input and return first valid integer")
   void readIntSafe_skipsInvalidAndReadsInteger() {
@@ -55,6 +71,10 @@ public class ConsoleInputTest {
     }
   }
 
+  /**
+   * Verifies that {@link ConsoleInput#readDoubleSafe(Scanner, String)} reads decimal numbers using
+   * a dot as a decimal separator and ignores preceding invalid tokens.
+   */
   @Test
   @DisplayName("readDoubleSafe() should read decimal values properly")
   void readDoubleSafe_readsDecimal() {
@@ -64,6 +84,10 @@ public class ConsoleInputTest {
     }
   }
 
+  /**
+   * Verifies that {@link ConsoleInput#readDoubleSafe(Scanner, String)} supports a comma as a
+   * decimal separator in addition to a dot, allowing for locale-like inputs.
+   */
   @Test
   @DisplayName("readDoubleSafe() should support comma as decimal separator")
   void readDoubleSafe_supportsComma() {
@@ -73,6 +97,12 @@ public class ConsoleInputTest {
     }
   }
 
+  /**
+   * Verifies that {@link ConsoleInput#readLoginSafe(Scanner)} continues prompting until an invalid
+   * login is rejected and a valid login string is provided.
+   *
+   * <p>In this scenario, {@code "__bad"} is rejected and {@code "ok-user1"} is accepted.
+   */
   @Test
   @DisplayName("readLoginSafe() should reject invalid and accept valid login")
   void readLoginSafe_validLogin() {

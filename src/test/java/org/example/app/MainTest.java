@@ -10,26 +10,30 @@ import java.util.List;
 import org.junit.jupiter.api.*;
 
 /**
- * Integration tests for the Main application class.
+ * Integration tests for the {@code org.example.app.Main} application.
  *
- * <p>These tests run the application as a separate process, simulating real user interaction by
- * feeding scripted input to stdin and capturing stdout/stderr output. Each test creates an isolated
- * temporary working directory to ensure test independence.
+ * <p>Each test launches the app in a <b>separate JVM process</b> via {@link ProcessBuilder},
+ * simulates user input by writing a scripted sequence to {@code stdin}, and captures both {@code
+ * stdout} and {@code stderr}. Every test runs in an isolated temporary working directory with its
+ * own {@code data/} folder to ensure independence and repeatability.
  *
- * <p>Test categories:
+ * <p><b>Test coverage areas:</b>
  *
  * <ul>
- *   <li><b>Basic smoke tests:</b> Verify application startup, exit, and basic menu navigation
- *   <li><b>Super admin scenarios:</b> Test first user registration (becomes SUPER_ADMIN), logout
- *       functionality, and administrative operations
- *   <li><b>Menu navigation tests:</b> Exercise various menu paths including Main Actions,
- *       Administrator Actions, and invalid input handling
- *   <li><b>Transaction operations:</b> Test income/expense addition, wallet viewing, and statistics
- *       display
+ *   <li><b>Smoke:</b> startup, menu rendering, clean exit
+ *   <li><b>First-user flow:</b> registration of the initial user who becomes {@code SUPER_ADMIN},
+ *       logout path, and basic admin navigation
+ *   <li><b>Menu navigation:</b> main actions, administrator actions, and handling of invalid input
+ *   <li><b>Transactions:</b> adding income/expense, viewing wallet, and viewing statistics
  * </ul>
  *
- * <p>The tests include JaCoCo agent integration to collect code coverage from the spawned process,
- * ensuring accurate coverage metrics for the entire application flow.
+ * <p><b>JaCoCo integration:</b> if the system properties {@code jacoco.agent.path} and {@code
+ * jacoco.agent.destfile} are provided, the spawned process is started with the JaCoCo Java agent
+ * ({@code append=true}) so that coverage from the external JVM is recorded into the specified exec
+ * file.
+ *
+ * <p><b>Notes:</b> Temporary directories are created with {@link
+ * java.nio.file.Files#createTempDirectory(String)} and are not explicitly deleted by these tests.
  *
  * @see org.example.app.Main
  */
@@ -48,8 +52,10 @@ class MainTest {
   }
 
   /**
-   * Create a working directory with an empty data/ folder (without a file) so the 1st user becomes
-   * SUPER_ADMIN.
+   * Creates a new temporary working directory and an empty {@code data/} subdirectory.
+   *
+   * <p>Absence of {@code data/finance-data.json} ensures that on first login the created user is
+   * promoted to {@code SUPER_ADMIN}.
    */
   private Path newWorkDir() throws IOException {
     Path wd = Files.createTempDirectory("finance-app-it-");
@@ -57,7 +63,26 @@ class MainTest {
     return wd;
   }
 
-  /** Start org.example.app.Main as a separate process and feed the script to stdin. */
+  /**
+   * Starts {@code org.example.app.Main} in a separate JVM process, feeds the provided script into
+   * {@code stdin}, and captures {@code stdout}/{@code stderr}.
+   *
+   * <p>Behavioral details:
+   *
+   * <ul>
+   *   <li>Classpath is taken from {@code System.getProperty("java.class.path")}.
+   *   <li>Working directory is forced to {@code workDir} via {@code -Duser.dir} and
+   *       ProcessBuilder's {@link ProcessBuilder#directory(File)}.
+   *   <li>UTF-8 is enforced via {@code -Dfile.encoding=UTF-8} and streams are read/written in
+   *       UTF-8.
+   *   <li>If {@code jacoco.agent.path} and {@code jacoco.agent.destfile} system properties are set,
+   *       the JaCoCo agent is attached with {@code append=true}.
+   * </ul>
+   *
+   * @param script newline-separated keystrokes to feed into the app (may be {@code null})
+   * @param workDir working directory to use for the spawned process
+   * @return exit code and captured output
+   */
   private ExecResult runApp(String script, Path workDir) throws Exception {
     String javaBin =
         Paths.get(
@@ -160,11 +185,14 @@ class MainTest {
     String pass = "StrongPass1!";
 
     // Input scenario:
-    // 1 -> Log in
-    // login, pass, pass -> create 1st user => SUPER_ADMIN
-    // John/Smith/... -> safe values for text fields
-    // Add a couple of expenses (amount + title), view wallet
-    // 8 -> back from Main Actions, 4 -> Exit from Actions
+    // 1 -> Login
+    // login, pass, pass -> create first user => SUPER_ADMIN
+    // John/Smith/... -> safe values for profile fields
+    // Main actions (1):
+    //   add expense (2): amount -> title -> "" (empty date = today)
+    //   add expense (2): amount -> title -> "" (empty date = today)
+    //   view wallet (3)
+    // return from Main actions (14), then exit from Actions (4)
     String script =
         String.join(
                 "\n",
@@ -187,11 +215,11 @@ class MainTest {
                 "2",
                 "4",
                 "coffee",
-                "", // <-- дата (пусто = today)
+                "", // <-- date(empty = today)
                 "2",
                 "1",
                 "taxi",
-                "", // <-- дата (пусто = today)
+                "", // <-- date (empty = today)
                 "3", // View wallet
 
                 // Return and exit
@@ -320,7 +348,7 @@ class MainTest {
     String script =
         String.join(
                 "\n",
-                "1", // Log in (создаём первого пользователя → SUPER_ADMIN)
+                "1", // Log in (сreate new user → SUPER_ADMIN)
                 "adminuser",
                 "Qwerty12!",
                 "Qwerty12!",
@@ -334,8 +362,8 @@ class MainTest {
                 "0",
                 // В Actions:
                 "x", // invalid
-                "", // invalid (пустая строка)
-                "99", // invalid (вне диапазона)
+                "", // invalid (empty string)
+                "99", // invalid (out of range)
                 "4" // Exit
                 )
             + "\n";
@@ -391,9 +419,21 @@ class MainTest {
   }
 
   /**
-   * Full loop: Login → Main actions → invalids → back → Admin actions open/close → Exit. Даёт
-   * дополнительную трассу по default в подменю и переход в админ-раздел (без предположения о
-   * конкретных пунктах).
+   * Exercises a full navigation loop: Login → Main Actions → invalid input handling → return →
+   * Admin Actions → invalid input handling → exit.
+   *
+   * <p>This test intentionally triggers several default branches in both Main Actions and
+   * Administrator Actions menus. It verifies that the application:
+   *
+   * <ul>
+   *   <li>recovers gracefully from invalid numeric inputs
+   *   <li>correctly processes “Return to previous menu” commands in nested menus
+   *   <li>properly enters and exits the Administrator Actions section
+   *   <li>exits cleanly with status code 0
+   * </ul>
+   *
+   * <p>The goal is not to validate specific admin functions but to ensure stable menu traversal,
+   * error path handling, and complete control flow coverage across submenus.
    */
   @Test
   @DisplayName("Navigate Main Actions and Admin Actions menus, handle invalid inputs, and exit")
@@ -416,10 +456,10 @@ class MainTest {
                 "0",
                 "1", // Main actions
                 "0", // invalid in main actions
-                "14", // <-- Return to previous menu (заменили 8)
+                "14", // <-- Return to previous menu
                 "2", // Administrator actions
                 "0", // invalid inside admin menu
-                "8", // <-- Return to previous menu (если у тебя в админ-меню 1–4)
+                "8", // <-- Return to previous menu
                 "4" // Exit из Actions
                 )
             + "\n";

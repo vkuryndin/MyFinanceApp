@@ -36,13 +36,23 @@ public class UsersRepoTest {
 
   private UsersRepo repo;
 
+  /**
+   * Initializes a fresh repository for each test to preserve isolation and avoid cross-test state.
+   */
   @BeforeEach
   void setup() {
     repo = new UsersRepo();
   }
 
+  /**
+   * <b>Intent:</b> Registration normalizes the login (trim + lower-case) and is idempotent for the
+   * same normalized key.
+   *
+   * <p><b>Asserts:</b> First registration yields normalized login; repeated registration with the
+   * same normalized login returns the same {@link User} instance.
+   */
   @Test
-  @DisplayName("Регистрация нормализует логин; повторная — возвращает того же пользователя")
+  @DisplayName("Registration is normalizing the login; the second one returns the same userв")
   void registerAndNormalize() {
     User u1 = repo.register("  Ivan-123 ", "Ivan", "Petrov", "pass");
     assertEquals("ivan-123", u1.login);
@@ -51,16 +61,28 @@ public class UsersRepoTest {
     assertSame(u1, u2);
   }
 
+  /**
+   * <b>Intent:</b> Invalid logins are rejected according to format rules.
+   *
+   * <p><b>Asserts:</b> Too short or non-letter-starting logins cause {@link
+   * IllegalArgumentException}.
+   */
   @Test
-  @DisplayName("Неверный логин — IllegalArgumentException")
+  @DisplayName("Invalid login — IllegalArgumentException")
   void invalidLogin() {
     assertThrows(IllegalArgumentException.class, () -> repo.register("1bad", "A", "B", "p"));
     assertThrows(
         IllegalArgumentException.class, () -> repo.register("ab", "A", "B", "p")); // < 3 символов
   }
 
+  /**
+   * <b>Intent:</b> Authentication returns a user on success and {@code null} on failure.
+   *
+   * <p><b>Asserts:</b> Correct password authenticates; wrong password or unknown login yields
+   * {@code null}.
+   */
   @Test
-  @DisplayName("Аутентификация: успех и провал")
+  @DisplayName("Authentications: success and failure")
   void authenticate() {
     repo.register("userone", "A", "B", "qwerty");
     assertNotNull(repo.authenticate("userone", "qwerty"));
@@ -68,8 +90,15 @@ public class UsersRepoTest {
     assertNull(repo.authenticate("unknown", "qwerty"));
   }
 
+  /**
+   * <b>Intent:</b> Happy-path transfer records an {@code EXPENSE} for sender and an {@code INCOME}
+   * for recipient with informative titles, and updates wallet totals symmetrically.
+   *
+   * <p><b>Asserts:</b> Totals: sender expense == amount; recipient income == amount. Transaction
+   * types and titles contain directional markers and the memo.
+   */
   @Test
-  @DisplayName("Перевод между пользователями: у отправителя EXPENSE, у получателя INCOME")
+  @DisplayName("Transfer between users: EXPENSE from the sender, INCOME gets the receiver")
   void transferHappyPath() {
     repo.register("alice", "A", "B", "1");
     repo.register("bob", "C", "D", "2");
@@ -95,9 +124,14 @@ public class UsersRepoTest {
     assertTrue(lastIn.getTitle().toLowerCase().contains("gift"));
   }
 
+  /**
+   * <b>Intent:</b> Invalid transfers must be rejected with {@link IllegalArgumentException}.
+   *
+   * <p><b>Asserts:</b> Self-transfer; zero/negative amount; unknown sender/recipient → all throw
+   * {@link IllegalArgumentException}.
+   */
   @Test
-  @DisplayName(
-      "Переводы с ошибками: на себя, нулевая/отрицательная сумма, несуществующие пользователи")
+  @DisplayName("Transfer with errors: to myself, null/negative sum, non existent users")
   void transferErrors() {
     repo.register("alice", "A", "B", "1");
     repo.register("bob", "C", "D", "2");
@@ -109,59 +143,67 @@ public class UsersRepoTest {
     assertThrows(IllegalArgumentException.class, () -> repo.transfer("alice", "ghost", 10, "t"));
   }
 
+  /**
+   * <b>Intent:</b> Simple deletion returns {@code true} only for an existing user and {@code false}
+   * when the user does not exist.
+   */
   @Test
-  @DisplayName("Удаление пользователя: true если был, false если нет")
+  @DisplayName("Deleting a user: true if there was a user, false if not")
   void deleteUserSimple() {
     repo.register("xuser", "A", "B", "1");
     assertTrue(repo.deleteUser("xuser"));
     assertFalse(repo.deleteUser("xuser"));
   }
 
+  /**
+   * <b>Intent:</b> Password-guarded deletion succeeds only with valid credentials and returns
+   * {@code false} for already removed or {@code null} inputs.
+   */
   @Test
-  @DisplayName("Удаление с паролем: валидные/невалидные учётки")
+  @DisplayName("Deletion with a password: valid/non valid user accounts")
   void deleteUserWithPassword() {
     repo.register("xuser", "A", "B", "1");
     assertTrue(repo.deleteUser("xuser", "1"));
 
-    // уже удалён
+    // already deleted
     assertFalse(repo.deleteUser("xuser", "1"));
-    // null-ы
+    // nulls
     assertFalse(repo.deleteUser(null, "1"));
     assertFalse(repo.deleteUser("xuser", null));
   }
 
   @Test
-  @DisplayName("Назначение и снятие админа")
+  @DisplayName("Assign and remove ordinary admin account")
   void addRemoveAdmin() {
     repo.register("rooter", "R", "R", "r");
     repo.register("userok", "U", "U", "p");
 
-    // логинимся rooter и назначаем userok админом
+    // log in rooter and assing userok as ordinary admin
     assertTrue(repo.addAdmin("rooter", "r", "userok"));
     assertTrue(repo.find("userok").hasRole(User.Role.ADMIN));
 
-    // снимаем роль
+    // removing ordinary admin role
     assertTrue(repo.removeAdmin("userok"));
     assertFalse(repo.find("userok").hasRole(User.Role.ADMIN));
   }
 
   @Test
-  @DisplayName("addAdmin: ошибки учётки/ролей (валидные логины)")
+  @DisplayName("addAdmin: user account errors/roles (valid logins)")
   void addAdminErrors() {
-    // используем валидные логины (>=3 символов)
+    // using valid logins (>=3 characters)
     repo.register("alice", "A", "A", "p");
     repo.register("bob", "B", "B", "p");
 
-    // неправильные креды назначающего
+    // wrong credentials of the assigner
     assertThrows(RepoExceptions.Invalid.class, () -> repo.addAdmin("alice", "bad", "bob"));
 
-    // несуществующий кандидат
+    // non existing candidate
     assertThrows(RepoExceptions.NotFound.class, () -> repo.addAdmin("alice", "p", "nope"));
 
-    // успешное назначение
+    // successful assignment
     assertTrue(repo.addAdmin("alice", "p", "bob"));
 
-    // повторное назначение должно давать Conflict
+    // the repeat assigment should throw a conflict
     assertThrows(RepoExceptions.Conflict.class, () -> repo.addAdmin("alice", "p", "bob"));
   }
 }

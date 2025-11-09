@@ -23,13 +23,33 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 /**
- * Тесты handler-методов из ConsoleUtils. ВНИМАНИЕ: у User.wallet — final, поэтому НЕ пытаемся его
- * подменять. Работаем с реальным кошельком, а UsersRepo — мок.
+ * Unit tests for handler methods in {@code ConsoleUtils}.
+ *
+ * <p><b>Scope:</b> These tests exercise user-interaction handlers (parsing inputs from a {@link
+ * Scanner}, mutating {@link Wallet} state, and delegating to {@link UsersRepo}). The {@code
+ * UsersRepo} dependency is mocked; the {@link User#wallet} field is <i>final</i> and therefore not
+ * replaced — tests operate on the real wallet bound to each {@link User} instance.
+ *
+ * <p><b>Key verifications:</b>
+ *
+ * <ul>
+ *   <li>Correct branching and boolean results for success vs. failure paths
+ *   <li>Side effects on the real {@link Wallet} (budgets, transactions, statistics)
+ *   <li>Proper delegation to {@link UsersRepo}, including exception handling
+ *   <li>Console output smoke checks (messages, alerts) where relevant
+ * </ul>
  */
 public class ConsoleUtilsTest {
 
   /* ---------- helpers ---------- */
 
+  /**
+   * Creates a {@link Scanner} over the provided UTF-8 string and sets {@link Locale#ROOT} to ensure
+   * locale-independent number parsing (dot as decimal separator).
+   *
+   * @param s input content with line breaks that simulate user keystrokes
+   * @return configured {@link Scanner}
+   */
   private static Scanner scan(String s) {
     return new Scanner(
             new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)
@@ -37,9 +57,21 @@ public class ConsoleUtilsTest {
   }
 
   /**
-   * Универсально создаёт User даже при изменённом конструкторе. Ищем конструктор с >=4
-   * String-параметрами (login, name, surname, pass) и заполняем их. Если нужно — добавляем роль
-   * SUPER_ADMIN через addRole(Role). Кошелёк не трогаем (final).
+   * Constructs a {@link User} via reflection in a constructor-agnostic way.
+   *
+   * <p>Finds a suitable constructor (prefers one with ≥4 {@code String} parameters for {@code
+   * login}, {@code name}, {@code surname}, {@code pass}). Populates remaining parameters with
+   * neutral defaults. Optionally adds the {@code SUPER_ADMIN} role using {@code addRole(Role)} if
+   * available. The {@link User#wallet} field is not replaced (it is final) and will be used by
+   * tests.
+   *
+   * @param login login string
+   * @param name first name
+   * @param surname last name
+   * @param pass password
+   * @param superAdmin whether to grant {@code SUPER_ADMIN} role
+   * @return constructed {@link User}
+   * @throws AssertionError if a suitable constructor cannot be invoked
    */
   private static User mkUser(
       String login, String name, String surname, String pass, boolean superAdmin) {
@@ -98,7 +130,7 @@ public class ConsoleUtilsTest {
           Method addRole = User.class.getMethod("addRole", User.Role.class);
           addRole.invoke(u, User.Role.SUPER_ADMIN);
         } catch (NoSuchMethodException ignore) {
-          // другой способ ролей — ок, handlers проверяют hasRole(...)
+          // Alternative role model is fine; handlers check hasRole(...)
         }
       }
       return u;
@@ -108,7 +140,13 @@ public class ConsoleUtilsTest {
     }
   }
 
-  /** Перехват System.out, чтобы проверять вывод */
+  /**
+   * Captures {@code System.out} during execution of {@code r} and returns the printed text as a
+   * UTF-8 string. Restores the original {@code System.out} afterward.
+   *
+   * @param r code block that writes to {@code System.out}
+   * @return captured output
+   */
   private static String captureStdout(Runnable r) {
     PrintStream old = System.out;
     java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
@@ -123,25 +161,35 @@ public class ConsoleUtilsTest {
   }
 
   /* ---------- handleAddBudget ---------- */
-
+  /**
+   * Verifies that {@code handleAddBudget} sets a budget for a category and that subsequent computed
+   * values reflect zero spent and remaining equals the limit.
+   *
+   * <p><b>Input script:</b> {@code "food\n200\n\n"} → category, limit, trailing newline.
+   */
   @Test
   @DisplayName("handleAddBudget: sets budget and prints spent/remaining (state check)")
   void handleAddBudget_ok() {
     User current = mkUser("usr1", "John", "Smith", "pass", false);
     Wallet wallet = current.wallet; // реальный кошелёк из User
 
-    // Ввод: категория + лимит; добавляем запасной перевод строки
+    // Enter: category + limit; additional line feed added
     Scanner in = scan("food\n200\n\n");
     ConsoleUtils.handleAddBudget(in, current);
 
-    // Проверяем состояние: после установки бюджета без трат
-    // потрачено 0, остаток = лимит
+    // Checking status: after setting budget without expenses
+    // spend 0, remaining = limit
     assertEquals(0.0, wallet.getSpentByCategory("food"), 1e-9);
     assertEquals(200.0, wallet.getRemainingBudget("food"), 1e-9);
   }
 
   /* ---------- handleTransfer ---------- */
-
+  /**
+   * Happy path: verifies that a valid transfer invokes {@code UsersRepo.transfer} with expected
+   * arguments.
+   *
+   * <p><b>Input script:</b> receiver, amount, note, trailing newline.
+   */
   @Test
   @DisplayName("handleTransfer: success → repo.transfer called")
   void handleTransfer_success() throws Exception {
@@ -154,37 +202,46 @@ public class ConsoleUtilsTest {
     verify(repo).transfer("sender", "receiver", 100.5, "rent");
   }
 
+  /**
+   * Error path: repository throws {@code Invalid}; handler should not crash and still delegate
+   * once.
+   *
+   * <p><b>Input script:</b> includes a few invalid amounts before a valid number to exercise input
+   * re-prompt logic.
+   */
   @Test
   @DisplayName("handleTransfer: Invalid → prints error, no crash")
   void handleTransfer_invalid() throws Exception {
     var current = mkUser("sender", "John", "Smith", "p", false);
     var repo = mock(UsersRepo.class);
 
-    // Репозиторий в любом случае бросает Invalid — не важно, какое число придёт
+    // Repository throws Invalid regardless of the amount
     doThrow(new RepoExceptions.Invalid("bad amount"))
         .when(repo)
         .transfer(anyString(), anyString(), anyDouble(), anyString());
 
-    // Последовательность ввода:
-    // получатель → несколько «плохих» попыток (минус/слово) → ВАЛИДНОЕ число → note → завершающая
-    // пустая
+    // Sequence: receiver → invalid number → not-a-number → valid number → note → trailing newline
     Scanner in =
         scan(
             "receiver\n"
                 + "-1\n"
-                + // допустимо как число, но пусть остаётся
+                + // can be done as imnteger, leaving it as is
                 "not-a-number\n"
-                + // readDoubleSafe попросит ещё
+                + // readDoubleSafe will ask for more
                 "15\n"
-                + // валидное число, после него пойдём дальше
+                + // valid number, after this will go further
                 "rent\n\n");
 
     ConsoleUtils.handleTransfer(in, current, repo);
 
-    // Проверяем, что до репозитория дошли
+    // Ensure delegation happened despite earlier bad inputs
     verify(repo).transfer(eq("sender"), eq("receiver"), anyDouble(), eq("rent"));
   }
 
+  /**
+   * Error path: repository throws {@code NotFound}. The handler should surface an error message and
+   * still delegate exactly once with expected parameters.
+   */
   @Test
   @DisplayName("handleTransfer: NotFound → prints 'Receiver not found.'")
   void handleTransfer_notFound() throws Exception {
@@ -216,7 +273,10 @@ public class ConsoleUtilsTest {
   }
 
   /* ---------- handleDeleteYourUserAccount ---------- */
-
+  /**
+   * Guard: a {@code SUPER_ADMIN} user must not be allowed to delete their own account. Verifies the
+   * handler returns {@code false} and never calls the repository.
+   */
   @Test
   @DisplayName("handleDeleteYourUserAccount: SUPER_ADMIN cannot delete self → false")
   void deleteYour_superAdmin_forbidden() {
@@ -229,6 +289,7 @@ public class ConsoleUtilsTest {
     verify(repo, never()).deleteUser(anyString(), anyString());
   }
 
+  /** Negative confirmation should short-circuit: returns {@code false}, no repo calls. */
   @Test
   @DisplayName("handleDeleteYourUserAccount: confirm=no → false, repo not called")
   void deleteYour_confirmFalse() {
@@ -240,6 +301,10 @@ public class ConsoleUtilsTest {
     verify(repo, never()).deleteUser(anyString(), anyString());
   }
 
+  /**
+   * Happy path: positive confirmation, repository returns {@code true} → handler returns {@code
+   * true}.
+   */
   @Test
   @DisplayName("handleDeleteYourUserAccount: confirm=yes, repo=true → true")
   void deleteYour_confirmYes_success() throws Exception {
@@ -252,6 +317,7 @@ public class ConsoleUtilsTest {
     verify(repo).deleteUser("usr1", "pass");
   }
 
+  /** Repository returns {@code false} → handler returns {@code false}. */
   @Test
   @DisplayName("handleDeleteYourUserAccount: confirm=yes, repo=false → false")
   void deleteYour_confirmYes_false() throws Exception {
@@ -264,6 +330,10 @@ public class ConsoleUtilsTest {
     verify(repo).deleteUser("usr1", "pass");
   }
 
+  /**
+   * Exception handling: for {@code Invalid}, {@code Forbidden}, and {@code NotFound}, the handler
+   * must return {@code false} without throwing.
+   */
   @Test
   @DisplayName("handleDeleteYourUserAccount: Invalid/Forbidden/NotFound → false")
   void deleteYour_exceptions_false() throws Exception {
@@ -282,6 +352,10 @@ public class ConsoleUtilsTest {
 
   /* ---------- handleDeleteSelectedUserAccount ---------- */
 
+  /**
+   * Not-found path (direct login provided): returns {@code false} and repository delete is never
+   * called. This test also covers the case previously used to emulate an empty login branch.
+   */
   @Test
   @DisplayName(
       "handleDeleteSelectedUserAccount: not found → false (replacement for empty-login case)")
@@ -290,12 +364,13 @@ public class ConsoleUtilsTest {
     var repo = mock(UsersRepo.class);
     when(repo.find("ghost")).thenReturn(null);
 
-    // Пользователь сразу вводит валидный логин, которого нет
+    // User immediately enters a valid-looking login that does not exist
     boolean res = ConsoleUtils.handleDeleteSelectedUserAccount(scan("ghost\n\n"), current, repo);
     assertFalse(res);
     verify(repo, never()).deleteUser(anyString());
   }
 
+  /** Not-found path: same as above with a different login. */
   @Test
   @DisplayName("handleDeleteSelectedUserAccount: not found → false")
   void deleteSelected_notFound() {
@@ -308,6 +383,7 @@ public class ConsoleUtilsTest {
     verify(repo, never()).deleteUser(anyString());
   }
 
+  /** Guard: user cannot delete themselves. Returns {@code false}; no repo deletion. */
   @Test
   @DisplayName("handleDeleteSelectedUserAccount: try delete yourself → false")
   void deleteSelected_self() {
@@ -320,6 +396,10 @@ public class ConsoleUtilsTest {
     verify(repo, never()).deleteUser(anyString());
   }
 
+  /**
+   * Guard: attempting to delete a {@code SUPER_ADMIN} must be rejected. Returns {@code false}; no
+   * repo deletion.
+   */
   @Test
   @DisplayName("handleDeleteSelectedUserAccount: target SUPER_ADMIN → false")
   void deleteSelected_targetSuperAdmin_forbidden() {
@@ -334,6 +414,7 @@ public class ConsoleUtilsTest {
     verify(repo, never()).deleteUser(anyString());
   }
 
+  /** Happy path: repository returns {@code true} for deletion → handler returns {@code true}. */
   @Test
   @DisplayName("handleDeleteSelectedUserAccount: success → true")
   void deleteSelected_success() throws Exception {
@@ -348,6 +429,10 @@ public class ConsoleUtilsTest {
     verify(repo).deleteUser("marylee");
   }
 
+  /**
+   * Exception handling: repository throws various exceptions on delete; handler must return {@code
+   * false} without throwing.
+   */
   @Test
   @DisplayName("handleDeleteSelectedUserAccount: repo exceptions → false")
   void deleteSelected_exceptions_false() throws Exception {
@@ -369,7 +454,7 @@ public class ConsoleUtilsTest {
   }
 
   /* ---------- handleAddOrdinaryAdminAccount ---------- */
-
+  /** Negative confirmation must abort the flow: returns {@code false}; repository is not called. */
   @Test
   @DisplayName("handleAddOrdinaryAdminAccount: confirm != YES → false, repo not called")
   void addOrdinaryAdmin_wrongConfirm() {
@@ -387,6 +472,10 @@ public class ConsoleUtilsTest {
     verify(repo, never()).addAdmin(anyString(), anyString(), anyString());
   }
 
+  /**
+   * Happy path: positive confirmation and correct password → {@code addAdmin} invoked; returns
+   * true.
+   */
   @Test
   @DisplayName("handleAddOrdinaryAdminAccount: success → true")
   void addOrdinaryAdmin_success() throws Exception {
@@ -403,6 +492,10 @@ public class ConsoleUtilsTest {
     verify(repo).addAdmin("rootadmin", "pass", "usr2");
   }
 
+  /**
+   * Exception handling: repository throws {@code Invalid}, {@code NotFound}, {@code Conflict},
+   * {@code Forbidden}; handler must return {@code false} each time.
+   */
   @Test
   @DisplayName("handleAddOrdinaryAdminAccount: Invalid/NotFound/Conflict/Forbidden → false")
   void addOrdinaryAdmin_exceptions_false() throws Exception {
@@ -430,7 +523,10 @@ public class ConsoleUtilsTest {
   }
 
   /* ---------- handleRemoveOrdinaryAdminAccount ---------- */
-
+  /**
+   * Negative confirmation must abort: returns {@code false}; repository {@code removeAdmin} not
+   * called.
+   */
   @Test
   @DisplayName("handleRemoveOrdinaryAdminAccount: confirm=no → false")
   void removeOrdinaryAdmin_confirmFalse() {
@@ -440,6 +536,10 @@ public class ConsoleUtilsTest {
     verify(repo, never()).removeAdmin(anyString());
   }
 
+  /**
+   * Happy path: positive confirmation and existing admin login → returns {@code true} and delegates
+   * to repository.
+   */
   @Test
   @DisplayName("handleRemoveOrdinaryAdminAccount: success → true")
   void removeOrdinaryAdmin_success() throws Exception {
@@ -449,6 +549,10 @@ public class ConsoleUtilsTest {
     verify(repo).removeAdmin("usr4");
   }
 
+  /**
+   * Exception handling: repository throws {@code NotFound}, {@code Forbidden}, {@code Invalid},
+   * {@code Conflict}; handler returns {@code false}.
+   */
   @Test
   @DisplayName("handleRemoveOrdinaryAdminAccount: NotFound/Forbidden/Invalid/Conflict → false")
   void removeOrdinaryAdmin_exceptions_false() throws Exception {
@@ -468,9 +572,15 @@ public class ConsoleUtilsTest {
   }
 
   /* ---------- handleAdvancedStatistics ---------- */
-
+  /**
+   * Verifies advanced statistics filtering by period and categories.
+   *
+   * <p>Data set includes incomes and expenses across January–February 2025; the filter selects
+   * {@code food} expenses in January only and prints category totals, overall totals, and a
+   * filtered transaction list.
+   */
   @Test
-  @DisplayName("handleAdvancedStatistics: фильтр по периоду и категориям (food в январе)")
+  @DisplayName("handleAdvancedStatistics: fulter by periods and categories  (food in january)")
   void advancedStats_basicFilter() {
     User u = mkUser("u", "N", "S", "p", false);
     var w = u.wallet;
@@ -492,21 +602,29 @@ public class ConsoleUtilsTest {
     assertTrue(out.contains("2025-01-15 | EXPENSE | food | 100"));
   }
 
+  /**
+   * Boundary handling: if {@code TO} is earlier than {@code FROM}, the handler should swap the
+   * bounds and report that swap in the output. Also verifies the filtered totals.
+   */
   @Test
-  @DisplayName("handleAdvancedStatistics: если TO раньше FROM — границы меняются местами")
+  @DisplayName(
+      "handleAdvancedStatistics: if TO is earlier than FROM — the boundaries are interchanged")
   void advancedStats_swappedBounds() {
     User u = mkUser("u", "N", "S", "p", false);
     u.wallet.addTransaction(new Transaction(10.0, "food", Transaction.Type.EXPENSE, "2025-01-10"));
     Scanner in = scan("2025-02-01\n2025-01-01\nfood\n\n");
     String out = captureStdout(() -> ConsoleUtils.handleAdvancedStatistics(in, u));
-    assertTrue(out.toLowerCase(Locale.ROOT).contains("swapping"), "Должно сообщить о swap");
+    assertTrue(out.toLowerCase(Locale.ROOT).contains("swapping"), "Should notify aboutswap");
     assertTrue(out.contains("food: 10"));
   }
 
   /* ---------- handleAddIncome / handleAddExpense ---------- */
-
+  /**
+   * Verifies that {@code handleAddIncome} creates an income transaction with the provided amount,
+   * title, and date, and that wallet aggregates reflect the change.
+   */
   @Test
-  @DisplayName("handleAddIncome: создаёт Transaction с датой и суммой")
+  @DisplayName("handleAddIncome: creaters Transaction with date and sum")
   void handleAddIncome_ok() {
     User u = mkUser("u", "N", "S", "p", false);
     Scanner in = scan("123.45\nbonus\n2025-03-01\n");
@@ -522,6 +640,10 @@ public class ConsoleUtilsTest {
                         && Math.abs(t.getAmount() - 123.45) < 1e-9));
   }
 
+  /**
+   * Verifies that {@code handleAddExpense} creates an expense transaction and prints a budget alert
+   * when the category limit is exceeded.
+   */
   @Test
   @DisplayName("handleAddExpense: создаёт Transaction и печатает бюджетный алерт при превышении")
   void handleAddExpense_ok() {
@@ -538,13 +660,16 @@ public class ConsoleUtilsTest {
                         && "food".equals(t.getTitle())
                         && "2025-04-10".equals(t.getDateIso())
                         && Math.abs(t.getAmount() - 70.0) < 1e-9));
-    assertTrue(out.contains("! "), "Ожидался алерт по бюджету");
+    assertTrue(out.contains("! "), "Waiting for budget alert");
   }
 
   /* ---------- handleUpdateBudgetLimit / handleRemoveBudget / handleRenameCategory ---------- */
-
+  /**
+   * Verifies updating an existing category limit prints a confirmation and changes the stored
+   * value.
+   */
   @Test
-  @DisplayName("handleUpdateBudgetLimit: обновление лимита существующей категории")
+  @DisplayName("handleUpdateBudgetLimit: update a limit of the existing category")
   void updateBudgetLimit_ok() {
     User u = mkUser("u", "N", "S", "p", false);
     u.wallet.setBudget("food", 100.0);
@@ -554,8 +679,9 @@ public class ConsoleUtilsTest {
     assertEquals(250.0, u.wallet.getBudgets().get("food"), 1e-9);
   }
 
+  /** Verifies removing an existing budget category prints a confirmation and deletes the entry. */
   @Test
-  @DisplayName("handleRemoveBudget: удаляет бюджет категорию")
+  @DisplayName("handleRemoveBudget: removes budget category")
   void removeBudget_ok() {
     User u = mkUser("u", "N", "S", "p", false);
     u.wallet.setBudget("travel", 300.0);
@@ -565,8 +691,9 @@ public class ConsoleUtilsTest {
     assertFalse(u.wallet.getBudgets().containsKey("travel"));
   }
 
+  /** Verifies renaming a category migrates its limit and prints a confirmation message. */
   @Test
-  @DisplayName("handleRenameCategory: переименование существующей категории")
+  @DisplayName("handleRenameCategory: rename the existing category")
   void renameCategory_ok() {
     User u = mkUser("u", "N", "S", "p", false);
     u.wallet.setBudget("oldcat", 400.0);
@@ -581,6 +708,10 @@ public class ConsoleUtilsTest {
 
   /* ---------- confirmAction ---------- */
 
+  /**
+   * Verifies that {@code confirmAction} returns {@code true} for {@code YES/yes} and {@code false}
+   * otherwise when using a single {@link Scanner} across sequential calls.
+   */
   @Test
   @DisplayName("confirmAction: YES/yes → true; иное → false (один Scanner)")
   void confirmAction_yesNo_singleScanner() {
@@ -594,9 +725,9 @@ public class ConsoleUtilsTest {
   }
 
   /* ---------- handleViewWallet / handleViewStatistics (smoke) ---------- */
-
+  /** Smoke test for wallet rendering: balance, transactions, budgets, and alerts are present. */
   @Test
-  @DisplayName("handleViewWallet: печатает баланс, транзакции, бюджеты и алерты")
+  @DisplayName("handleViewWallet: prints balance, transactions, budgets and alerts")
   void viewWallet_smoke() {
     User u = mkUser("u", "N", "S", "p", false);
     u.wallet.addTransaction(
@@ -610,8 +741,12 @@ public class ConsoleUtilsTest {
     assertTrue(out.contains("! "));
   }
 
+  /**
+   * Smoke test for statistics rendering: total income/expense and per-category aggregates show
+   * expected values.
+   */
   @Test
-  @DisplayName("handleViewStatistics: агрегаты доходов/расходов и по категориям")
+  @DisplayName("handleViewStatistics: summary of incomes/expenses by categories")
   void viewStatistics_smoke() {
     User u = mkUser("u", "N", "S", "p", false);
     u.wallet.addTransaction(
@@ -628,9 +763,12 @@ public class ConsoleUtilsTest {
   }
 
   /* ---------- handleExportJson / handleImportJson (static mock) ---------- */
-
+  /**
+   * Verifies that {@code handleExportJson} calls {@link WalletJson#save(User)} exactly once and
+   * does not print an error on success.
+   */
   @Test
-  @DisplayName("handleExportJson: вызывает WalletJson.save(u)")
+  @DisplayName("handleExportJson: invokes WalletJson.save(u)")
   void exportJson_callsSave() {
     User u = mkUser("u", "N", "S", "p", false);
     try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {
@@ -640,8 +778,12 @@ public class ConsoleUtilsTest {
     }
   }
 
+  /**
+   * Verifies that {@code handleExportJson} prints an error message when {@link
+   * WalletJson#save(User)} throws.
+   */
   @Test
-  @DisplayName("handleExportJson: при исключении печатает ошибку")
+  @DisplayName("handleExportJson: prints error when exception ")
   void exportJson_errorPrints() {
     User u = mkUser("u", "N", "S", "p", false);
     try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {
@@ -651,8 +793,12 @@ public class ConsoleUtilsTest {
     }
   }
 
+  /**
+   * Verifies that {@code handleImportJson} calls {@link WalletJson#loadInto(User)} exactly once and
+   * does not print an error on success.
+   */
   @Test
-  @DisplayName("handleImportJson: вызывает WalletJson.loadInto(u)")
+  @DisplayName("handleImportJson: invokes WalletJson.loadInto(u)")
   void importJson_callsLoadInto() {
     User u = mkUser("u", "N", "S", "p", false);
     try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {
@@ -662,8 +808,12 @@ public class ConsoleUtilsTest {
     }
   }
 
+  /**
+   * Verifies that {@code handleImportJson} prints an error message when {@link
+   * WalletJson#loadInto(User)} throws.
+   */
   @Test
-  @DisplayName("handleImportJson: при исключении печатает ошибку")
+  @DisplayName("handleImportJson: throws error when exception")
   void importJson_errorPrints() {
     User u = mkUser("u", "N", "S", "p", false);
     try (MockedStatic<WalletJson> mocked = mockStatic(WalletJson.class)) {

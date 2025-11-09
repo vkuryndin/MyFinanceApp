@@ -71,18 +71,18 @@ public class WalletTest {
     w.setBudget("food", 200.0);
     w.setBudget("travel", 500.0);
 
-    // обновление существующей
+    // update the existing
     assertTrue(w.updateBudgetLimit("food", 300.0));
     assertEquals(300.0, w.getBudgets().get("food"), 1e-9);
 
-    // обновление несуществующей
+    // update the existing
     assertFalse(w.updateBudgetLimit("entertainment", 100.0));
 
-    // удаление существующей
+    // delete the existing
     assertTrue(w.removeBudget("travel"));
     assertFalse(w.getBudgets().containsKey("travel"));
 
-    // удаление несуществующей
+    // delete the non existent
     assertFalse(w.removeBudget("unknown"));
   }
 
@@ -90,14 +90,14 @@ public class WalletTest {
   @DisplayName("renameCategory moves budget limit and merges spent amounts")
   void renameCategory_movesBudgetAndSpent() {
     Wallet w = new Wallet();
-    // лимит и траты по oldName
+    // limit and expenses by по oldName
     w.setBudget("food", 200.0);
     w.addTransaction(new Transaction(50.0, "food", Transaction.Type.EXPENSE, "2025-01-10"));
     w.addTransaction(new Transaction(30.0, "food", Transaction.Type.EXPENSE, "2025-01-11"));
 
     assertEquals(80.0, w.getSpentByCategory("food"), 1e-9);
 
-    // целевая категория уже имеет лимит и траты — проверим мердж
+    // the target category which already ahs a limit checking merge
     w.setBudget("groceries", 500.0);
     w.addTransaction(new Transaction(20.0, "groceries", Transaction.Type.EXPENSE, "2025-01-09"));
 
