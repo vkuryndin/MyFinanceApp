@@ -28,9 +28,10 @@ public class Main {
 
   public static void main(String[] args) {
     // showFirstMenu();
-    USERS = StorageJson.loadOrNew(DATA_FILE);
+      System.out.println("==========================");
+      USERS = StorageJson.loadOrNew(DATA_FILE);
 
-    // changing the welcome string whether this is the previously saved data exists
+    // changing the welcome string whether the previously saved data exists
     if (USERS.getIsPreviousDataExists()) {
       System.out.println("Welcome back to my finance app");
     } else {
@@ -75,6 +76,7 @@ public class Main {
           case 2:
             System.out.println("View docs");
             // TO FIX::write the documentation of the program
+              runDocumentation();
             break;
           case 3:
             System.out.println("You have exited");
@@ -289,6 +291,15 @@ public class Main {
                   return;
               default:
                   System.out.println("Invalid option, Choose  1-4");
+          }
+      }
+  }
+  private static void runDocumentation(){
+      while (true) {
+          ConsoleMenus.showDocumenation();
+          int option = ConsoleInput.readIntSafe(scanner);
+          if (option == 1) {
+              return;
           }
       }
   }
